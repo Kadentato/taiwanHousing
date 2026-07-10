@@ -32,33 +32,33 @@ changes so visitors' browsers refetch.
 2. Drag the **`webApp/`** folder in.
 3. Done — a permanent `https://…` URL on a global CDN, 24/7, $0. (Create a free account to keep/rename it.)
 
-## Option B — GitHub Pages (versioned, tied to source — recommended)
+## Option B — GitHub Pages via Actions (versioned, auto-deploy — recommended)
 
-From `taiwanHousing/`:
+A workflow at `.github/workflows/deploy.yml` publishes `webApp/` automatically. One-time setup, from
+`taiwanHousing/`:
 
 ```bash
-git init && git add . && git commit -m "Taiwan Housing Explorer"
-git branch -M main
+git add . && git commit -m "Taiwan Housing Explorer"   # (already done if repo exists)
 git remote add origin https://github.com/<you>/<repo>.git
 git push -u origin main
 ```
 
 `.gitignore` already excludes the 2.8 GB DB, `sourceData/`, and the `*.parquet` warehouse, so only the
-code + the ~56 MB `webApp/dataFiles/` are pushed. Then publish just the site subtree:
+code + the ~56 MB `webApp/dataFiles/` are pushed. Then in **Settings → Pages** set **Source = "GitHub
+Actions"** (not a branch). The workflow runs and the site appears at `https://<you>.github.io/<repo>/`.
+Public repos get Pages free; for a *private* repo Pages needs GitHub Pro (free via the Student pack).
+
+## Updating later (the whole point)
+
+Every push to `main` that touches `webApp/` **auto-redeploys** — no manual publish step:
 
 ```bash
-git subtree push --prefix webApp origin gh-pages
+git add -A && git commit -m "Refresh data" && git push
 ```
 
-and in **Settings → Pages** set the source to the **`gh-pages`** branch (root). The site appears at
-`https://<you>.github.io/<repo>/`. (Alternatively copy `webApp/` to `docs/` and point Pages at
-`main` + `/docs`.)
-
-## Updating later
-
-Re-run the regenerate block above, then redeploy — re-drag the folder (Option A) or
-`git add -A && git commit && git subtree push --prefix webApp origin gh-pages` (Option B). The map,
-series, and predictor all deepen automatically as more LVR seasons are added.
+Or edit a file straight in the GitHub web UI (press `.` in the repo to open the browser editor) and
+commit — the Action redeploys in ~1 minute. Re-run the regenerate block above first when the underlying
+data changes; the map, series, and predictor all deepen automatically as more LVR seasons are added.
 
 ## Notes
 
