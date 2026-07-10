@@ -1,10 +1,11 @@
 # Taiwan Housing Explorer
 
-A database + interactive map of Taiwan housing transactions, built in Python from the
-government **Actual Price Registration** (實價登錄 / LVR) open data. The Mandarin source is
-translated to English, normalised into a clean SQLite schema with a geographic hierarchy and an
-extensible tagging system, and exported to a **fully static web app** (Leaflet + Chart.js) that
-hosts for free, 24/7, with no server.
+A database, interactive map, and in-browser **price predictor** for Taiwan housing transactions,
+built in Python from the government **Actual Price Registration** (實價登錄 / LVR) open data. The
+Mandarin source is translated to English, normalised into a clean SQLite schema, and exported to a
+**fully static web app** (Leaflet + Chart.js) that hosts for free, 24/7, with no server.
+
+**Live site:** https://kadentato.github.io/taiwanHousing/
 
 ![District median unit price](spatialAnalysis/districtMedianUnitPrice.png)
 
@@ -26,17 +27,19 @@ hosts for free, 24/7, with no server.
     quality** panel reports the sampling frame, missingness, Moran's I, and a hedonic price model.
   - **Browse database** (`database.html`, linked top-right) — the actual SQLite file loaded in the browser
     with **sql.js** (WebAssembly): every table, all columns, one continuous scroll, plus an ad-hoc SQL box.
+  - **Price predictor** (`predictor.html`, linked top-right) — describe a home and get an estimated
+    price with calibrated 50/80/95% ranges, computed client-side from a gradient-boosted model.
   - **About** (`about.html`) — what the project is and how it's built.
-  - Full database is also downloadable (`webApp/dataFiles/taiwanHousing.sqlite`).
   CSS/JS are version-tagged (`?v=`) so browsers don't serve stale assets after an update.
 - **`spatialAnalysis/exploreDistricts.py`** — a geopandas demo (per-district stats + a plot).
 
 ## Data covered
 
-By default, one LVR release (~217 CSVs): **21 cities/counties**, three transaction types —
-**sales** (~9,307), **pre-sale** (~1,160), **rentals** (~5,119) = **15,586** transactions.
-Each record carries price, area (m² and ping), bed/bath counts, floors, building type, materials,
-build age, parking, management/elevator flags, and more. See [`dataDictionary.md`](dataDictionary.md).
+The live site runs on the **full LVR history, 2012 Q3 → 2026 Q2, housing sales only** (~3.5M
+de-duplicated transactions). Each record carries price, area (m² and ping), bed/bath counts, floors,
+building type, materials, build age, parking, and management/elevator flags. See
+[`dataDictionary.md`](dataDictionary.md) for fields and [`modelCard.md`](modelCard.md) for the
+predictor's assumptions, validated accuracy, and limitations.
 
 ### Adding history (2012 → now)
 Registration began **2012 Q3**, and the MOI publishes every quarter since. Fetch and ingest them:
@@ -113,8 +116,9 @@ tests/                  pytest unit + smoke tests
 
 ## Deployment
 
-The `webApp/` folder is 100% static — host it free and 24/7 on GitHub Pages, Cloudflare Pages, or
-Netlify. See [`deploymentGuide.md`](deploymentGuide.md).
+The `webApp/` folder is 100% static and **auto-deploys to GitHub Pages** on every push to `main`
+(`.github/workflows/deploy.yml`) — live at https://kadentato.github.io/taiwanHousing/. Full steps,
+including Cloudflare/Netlify, in [`deploymentGuide.md`](deploymentGuide.md).
 
 ## Attribution
 
