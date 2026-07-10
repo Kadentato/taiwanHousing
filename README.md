@@ -54,8 +54,8 @@ default = 2012 Q3 → now) and is resumable. Scale notes: **a single quarter is 
 so the full history is millions of rows and the SQLite DB grows to ~1 GB+. The build stays efficient
 (batched inserts; ~40 s/quarter), but at that size the DB is **local-only** (query it in DB Browser /
 geopandas) — the web app keeps running on the exported aggregates (computed on the *full* data) plus a
-**per-city sample** of records (4,000) so the browser stays fast. The map/stats default to a recent
-window; the time chart shows the whole span.
+**per-city sample** of records (4,000) so the browser stays fast. The map/stats and the time chart
+default to the whole span (2012→latest); narrow the year filter for a recent-only view.
 
 ## Quick start
 

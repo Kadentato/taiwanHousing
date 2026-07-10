@@ -31,7 +31,7 @@ const state = {
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
 const viewStack = [];   // drill history for Esc (each entry restores level+scope+map view)
-let DEFAULT_YEAR_FROM = null;   // map/stats default to a recent window, not the pooled decade
+let DEFAULT_YEAR_FROM = null;   // map/stats default to the full 2012→latest history (set in populateYearControls)
 
 // Hover descriptions for the transaction-type buttons: what each represents and
 // which fields it stores. (Record counts are filled in live from summary.json.)
@@ -824,9 +824,10 @@ function wireStatControls() {
 
 function populateYearControls() {
   const years = [...new Set(store.records.map((r) => r.saleYear).filter(Boolean))].sort((a, b) => a - b);
-  // Default the map/stats to a recent window (last two years) so headline numbers
-  // aren't a nominal median pooled across ~a decade. The time chart still shows all.
-  DEFAULT_YEAR_FROM = years.length >= 2 ? years[years.length - 2] : (years[0] || null);
+  // Default the map/stats to the FULL history (2012→latest). Note: the headline unit-price
+  // median is then a nominal figure pooled across ~a decade, so it reads below today's level;
+  // narrow the year filter (or read the time chart) for current prices.
+  DEFAULT_YEAR_FROM = null;
   state.yearFrom = DEFAULT_YEAR_FROM;
   const opts = (first) => `<option value="">${first}</option>` + years.map((y) => `<option value="${y}">${y}</option>`).join("");
   document.getElementById("yearFrom").innerHTML = opts("earliest");
