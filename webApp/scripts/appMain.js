@@ -4,7 +4,8 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=12";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=13";  // bump on rebuild so browsers refetch updated data files
+const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
 const PALETTE = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"];
 const NO_DATA = "#e5e7eb";
 
@@ -100,9 +101,9 @@ const METRIC = {
            val: (r) => (r.totalPrice == null ? null : r.totalPrice) },
   count: { label: "Transactions", short: "count", unit: "",
            fmt: (v) => v.toLocaleString(), val: () => 1 },
-  ping:  { label: "Median size", short: "size", unit: "ping",
-           fmt: (v) => v.toFixed(1) + " ping",
-           val: (r) => (r.livingAreaPing == null ? null : r.livingAreaPing) },
+  ping:  { label: "Median size", short: "size", unit: "m²",
+           fmt: (v) => Math.round(v).toLocaleString() + " m²",
+           val: (r) => (r.livingAreaPing == null ? null : r.livingAreaPing * M2_PER_PING) },
 };
 for (const m of Object.values(METRIC)) {
   m.values = (rs) => rs.map(m.val).filter((v) => v != null);
@@ -598,7 +599,7 @@ const COLUMNS = [
   { key: "date", label: "Date", cell: monthStr, sort: (r) => (r.saleYear || 0) * 100 + (r.saleMonth || 0), csv: monthStr },
   { key: "total", label: "Total price", num: true, cell: (r) => money(r.totalPrice), sort: (r) => r.totalPrice, csv: (r) => r.totalPrice },
   { key: "unit", label: "Unit NT$/m²", num: true, cell: (r) => money(r.unitPricePerM2), sort: (r) => r.unitPricePerM2, csv: (r) => r.unitPricePerM2 },
-  { key: "ping", label: "Living size (ping)", num: true, cell: (r) => (r.livingAreaPing != null ? r.livingAreaPing.toFixed(1) : "—"), sort: (r) => r.livingAreaPing, csv: (r) => r.livingAreaPing },
+  { key: "ping", label: "Living size (m²)", num: true, cell: (r) => (r.livingAreaPing != null ? Math.round(r.livingAreaPing * M2_PER_PING) : "—"), sort: (r) => r.livingAreaPing, csv: (r) => (r.livingAreaPing != null ? +(r.livingAreaPing * M2_PER_PING).toFixed(1) : "") },
   { key: "beds", label: "Beds", num: true, cell: (r) => r.bedrooms ?? "—", sort: (r) => r.bedrooms, csv: (r) => r.bedrooms },
   { key: "baths", label: "Baths", num: true, cell: (r) => r.bathrooms ?? "—", sort: (r) => r.bathrooms, csv: (r) => r.bathrooms },
   { key: "building", label: "Building type", cell: (r) => pretty(r.buildingType), sort: (r) => r.buildingType },

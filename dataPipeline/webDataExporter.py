@@ -34,7 +34,7 @@ WGS84 = 4326
 # The live web app loads records into the browser; cap per city so a large
 # multi-year history stays fast. Map/chart aggregates + stats below are always
 # computed on the FULL data — only the client's interactive record set is sampled.
-MAX_RECORDS_PER_CITY = 4000
+MAX_RECORDS_PER_CITY = 2000   # client's interactive sample; keeps the page load light (~18 MB)
 MAX_HEDONIC_ROWS = 200000
 DEAL_FLAGS = ["relatedPartyDeal", "cancelledDeal", "hasAddition"]
 MISSING_FIELDS = ["unitPricePerM2", "livingAreaPing", "bedrooms", "bathrooms",
