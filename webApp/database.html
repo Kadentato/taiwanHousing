@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raw database — Taiwan Housing Explorer</title>
+  <link rel="stylesheet" href="styles/appStyles.css?v=2" />
+</head>
+<body class="dbBody">
+  <header class="appHeader">
+    <div>
+      <h1>Taiwan Housing Explorer</h1>
+      <p class="subtitle">Raw database browser — the actual SQLite tables, in your browser</p>
+    </div>
+    <a class="headerLink" href="index.html">← Back to the map</a>
+  </header>
+
+  <div class="dbToolbar" id="dbToolbar">
+    <div class="tableChips" id="tableChips"></div>
+    <div class="dbSqlBar">
+      <input id="sqlBox" class="sqlBox" spellcheck="false"
+             placeholder="SELECT * FROM houses LIMIT 100  (Enter to run)" />
+      <button id="sqlRun" class="downloadBtn">Run SQL</button>
+      <button id="sqlReset" class="resetSqlBtn">Reset</button>
+      <span id="dbMeta" class="dbMeta"></span>
+      <span id="sqlError" class="sqlError"></span>
+    </div>
+  </div>
+
+  <main class="dbMain">
+    <div id="dbStatus" class="dbStatus">Loading database…</div>
+    <table id="dbTable" class="dbTable"><thead></thead><tbody></tbody></table>
+    <div id="dbSentinel" class="dbSentinel"></div>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script src="scripts/dbBrowser.js?v=2"></script>
+</body>
+</html>

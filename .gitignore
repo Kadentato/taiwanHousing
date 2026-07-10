@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Working DB copy (canonical build artifact). The DEPLOYABLE copy lives in
+# webApp/dataFiles/ and IS tracked, so static hosts (e.g. GitHub Pages) serve it.
+database/*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Downloaded historical LVR seasons (large, re-fetchable via fetchHistory.py)
+sourceData/
+
+# Modeling build artifacts (regenerable via modeling/buildDataset.py; ~80 MB+).
+# The DEPLOYABLE derivatives live in webApp/dataFiles/ and ARE tracked.
+modeling/data/*.parquet
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Note: geoReference/ IS committed on purpose — it is generated once by
+# setupGeoReference.py and then bundled so builds stay fully offline.

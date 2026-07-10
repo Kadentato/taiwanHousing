@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Price predictor — Taiwan Housing Explorer</title>
+  <link rel="stylesheet" href="styles/appStyles.css?v=7" />
+  <style>
+    .predWrap { max-width: 980px; margin: 0 auto; padding: 22px 20px 60px; }
+    .predIntro { color: #475569; font-size: 14px; line-height: 1.55; margin: 0 0 20px; }
+    .predLayout { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 22px; align-items: start; }
+    @media (max-width: 820px) { .predLayout { grid-template-columns: 1fr; } }
+    .predCard { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 18px 20px; }
+    .predCard h2 { margin: 0 0 14px; font-size: 15px; }
+    .fieldGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { font-size: 12px; font-weight: 600; color: #334155; }
+    .field input, .field select { padding: 7px 9px; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 13px; background: #fff; }
+    .tagRow { display: flex; flex-wrap: wrap; gap: 8px; grid-column: 1 / -1; margin-top: 2px; }
+    .tagRow label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #334155;
+                    border: 1px solid #cbd5e1; border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+    .fieldHint { grid-column: 1 / -1; margin: 2px 0 0; font-size: 11.5px; color: #64748b; line-height: 1.45; }
+    .advanced { grid-column: 1 / -1; margin-top: 4px; }
+    .advanced summary { font-size: 12px; font-weight: 600; color: #2563eb; cursor: pointer; }
+    .predResult { position: sticky; top: 16px; }
+    .predBig { font-size: 30px; font-weight: 700; color: #0f172a; letter-spacing: -0.5px; }
+    .predUnit { color: #475569; font-size: 14px; margin: 2px 0 16px; }
+    .rangeRow { margin: 12px 0; }
+    .rangeHead { display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 5px; }
+    .rangeHead b { color: #0f172a; }
+    .rangeBarWrap { position: relative; height: 20px; background: #eef2ff; border-radius: 5px; }
+    .rangeBar { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+    .rangeBar.b50 { background: #4338ca; } .rangeBar.b80 { background: #6366f1; } .rangeBar.b95 { background: #c7d2fe; }
+    .rangeVals { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-top: 3px; }
+    .predNote { font-size: 11.5px; color: #64748b; line-height: 1.5; margin-top: 16px; border-top: 1px solid #eef2f6; padding-top: 12px; }
+  </style>
+</head>
+<body class="aboutBody">
+  <header class="appHeader">
+    <div>
+      <h1>Taiwan Housing Explorer</h1>
+      <p class="subtitle">Price predictor</p>
+    </div>
+    <a class="headerLink" href="index.html">← Back to the map</a>
+  </header>
+
+  <main class="predWrap">
+    <p class="predIntro">
+      Describe a home — where it is, how big, and its features — and the model estimates what it would sell for
+      <em>today</em>, as a single best guess plus a range. The estimate runs entirely in your browser from a
+      gradient-boosted model trained on ~3 million sales (2012–2024) and cross-validated out-of-time; the ranges
+      are calibrated so that, e.g., 4 in 5 real sales land inside the 80% band.
+    </p>
+
+    <div class="predLayout">
+      <section class="predCard">
+        <h2>The home</h2>
+        <div class="fieldGrid">
+          <div class="field"><label for="pCity">City / county</label><select id="pCity"></select></div>
+          <div class="field"><label for="pDistrict">District</label><select id="pDistrict"></select></div>
+          <div class="field"><label for="pSize">Living size (m²)</label><input id="pSize" type="number" min="20" max="660" step="5" value="100" /></div>
+          <div class="field"><label for="pAge">Building age (years)</label><input id="pAge" type="number" min="0" max="80" step="1" value="15" /></div>
+          <div class="field" id="floorField"><label for="pFloor">Unit's floor</label><input id="pFloor" type="number" min="1" max="12" step="1" value="4" /></div>
+          <div class="field"><label for="pTotalFloors">Total floors in building</label><input id="pTotalFloors" type="number" min="1" max="12" step="1" value="8" /></div>
+          <p class="fieldHint">"Unit's floor" = which storey the apartment is on; "total floors" = the building's height. For a standalone house (透天厝) you own every storey, so only the total applies.</p>
+          <div class="field"><label for="pBeds">Bedrooms</label><input id="pBeds" type="number" min="0" max="10" step="1" value="3" /></div>
+          <div class="field"><label for="pBaths">Bathrooms</label><input id="pBaths" type="number" min="0" max="10" step="1" value="2" /></div>
+          <div class="field"><label for="pType">Building type</label><select id="pType"></select></div>
+          <div class="field"><label for="pUse">Main use</label><select id="pUse"></select></div>
+          <div class="tagRow">
+            <label><input type="checkbox" id="pParking" checked /> Parking</label>
+            <label><input type="checkbox" id="pElevator" checked /> Elevator</label>
+            <label><input type="checkbox" id="pMgmt" checked /> Management org</label>
+          </div>
+          <details class="advanced">
+            <summary>Advanced fields</summary>
+            <div class="fieldGrid" style="margin-top:10px">
+              <div class="field"><label for="pLiving">Living rooms</label><input id="pLiving" type="number" min="0" max="10" step="1" value="2" /></div>
+              <div class="field"><label for="pMaterial">Main material</label><select id="pMaterial"></select></div>
+              <div class="field"><label for="pLandPing">Land share (m²)</label><input id="pLandPing" type="number" min="0" max="660" step="1" value="16" /></div>
+              <div class="field"><label for="pMainRatio">Main-building ratio (公設)</label><input id="pMainRatio" type="number" min="0.2" max="1" step="0.01" value="0.66" /></div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="predCard predResult">
+        <h2>Estimated price <span id="predAsOf" class="subtitle" style="font-weight:400"></span></h2>
+        <div id="predBig" class="predBig">—</div>
+        <div id="predUnit" class="predUnit"></div>
+        <div id="predRanges"></div>
+        <p class="predNote" id="predNote"></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="scripts/predictor.js?v=6"></script>
+</body>
+</html>

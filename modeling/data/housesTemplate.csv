@@ -1,0 +1,4 @@
+﻿cityEn,districtZh,livingAreaPing,buildingAgeYears,transferFloor,totalFloors,bedrooms,livingRooms,bathrooms,hasParking,hasElevator,hasManagementOrg,landAreaPing,mainBuildingRatio,buildingType,mainUse,mainMaterial
+Taipei City,大安區,28,18,8,14,3,2,2,1,1,1,5,0.66,residentialTower,residential,reinforcedConcrete
+New Taipei City,板橋區,22,6,12,20,2,2,1,1,1,1,3,0.62,residentialTower,residential,reinforcedConcrete
+Kaohsiung City,苓雅區,38,28,4,7,3,2,2,0,0,0,12,0.8,walkUpApartment,residential,reinforcedBrick

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Taiwan Housing Explorer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=6" />
+</head>
+<body>
+  <header class="appHeader">
+    <div>
+      <h1>Taiwan Housing Explorer</h1>
+      <p class="subtitle" id="subtitle">Loading data…</p>
+    </div>
+    <div class="headerRight">
+      <div class="headerStats" id="headerStats"></div>
+      <button class="headerLink" id="methodsBtn" type="button">Methods ⓘ</button>
+      <a class="headerLink" href="predictor.html">Price predictor ↗</a>
+      <a class="headerLink" href="database.html">Browse database ↗</a>
+      <a class="headerLink" href="about.html">About ↗</a>
+    </div>
+  </header>
+
+  <div class="appBody">
+    <aside class="sidebar">
+      <section class="control">
+        <label class="controlLabel">Map level</label>
+        <div class="segmented" id="levelToggle">
+          <button data-level="region">Region</button>
+          <button data-level="city" class="active">City</button>
+          <button data-level="district">District</button>
+        </div>
+      </section>
+
+      <section class="control">
+        <label class="controlLabel" for="metricSelect">Colour metric</label>
+        <select id="metricSelect">
+          <option value="unit">Median unit price (NT$/m²)</option>
+          <option value="total">Median total price (NT$)</option>
+          <option value="count">Transaction count</option>
+          <option value="ping">Median living size (ping)</option>
+        </select>
+      </section>
+
+      <section class="control">
+        <label class="controlLabel">Geographic scope</label>
+        <select id="regionScope"><option value="">All regions</option></select>
+        <select id="cityScope"><option value="">All cities</option></select>
+      </section>
+
+      <details class="control collapsible">
+        <summary class="controlLabel">Tags</summary>
+        <div id="tagGroups" class="tagGroups"></div>
+      </details>
+
+      <details class="control collapsible">
+        <summary class="controlLabel">Statistical controls</summary>
+        <div class="statCtrl">
+          <label class="miniLabel">Min sample size (n ≥ <span id="minNVal">1</span>)</label>
+          <input type="range" id="minN" min="1" max="50" value="1" step="1" />
+        </div>
+        <div class="statCtrl">
+          <label class="miniLabel">Transaction years</label>
+          <div class="yearRange">
+            <select id="yearFrom"></select><span>–</span><select id="yearTo"></select>
+          </div>
+        </div>
+        <div class="statCtrl">
+          <label class="miniLabel">Exclude deals</label>
+          <div class="chips" id="dealChips">
+            <button class="chip" data-flag="relatedPartyDeal">Related-party</button>
+            <button class="chip" data-flag="hasAddition">With additions</button>
+            <button class="chip" data-flag="cancelledDeal">Cancelled</button>
+          </div>
+        </div>
+        <label class="checkRow"><input type="checkbox" id="winsorize" /> Trim extreme 1% (unit price)</label>
+        <label class="checkRow"><input type="checkbox" id="fixedScale" /> Fixed colour scale</label>
+        <label class="checkRow"><input type="checkbox" id="lisaMode" /> Price clusters (LISA, district)</label>
+      </details>
+
+      <button id="resetBtn" class="resetBtn">Reset filters</button>
+
+      <section class="statsCard" id="statsCard">
+        <h3>Current selection</h3>
+        <div id="statsBody"></div>
+      </section>
+      <p class="dataNote" id="dataNote"></p>
+      <a class="dbDownload" id="dbDownload" href="dataFiles/taiwanHousing.sqlite" download>
+        ⬇ Download full database (.sqlite)
+      </a>
+      <a class="dbBrowseLink" href="database.html">…or browse every table online →</a>
+    </aside>
+
+    <main class="mainArea">
+      <div class="viewBar">
+        <div class="segmented viewToggle" id="viewToggle">
+          <button data-view="map" class="active">Map</button>
+          <button data-view="table">Records</button>
+        </div>
+        <div class="viewBarRight" id="viewBarRight"></div>
+      </div>
+
+      <div id="mapView" class="mapView">
+        <div id="map"></div>
+        <div class="chartPanel" id="chartPanel">
+          <div class="chartHeader">
+            <h3 id="chartTitle">Market over time</h3>
+            <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/m²)</span>
+            <button class="chartCollapse" id="chartCollapse" type="button" title="Hide / show the chart">▾</button>
+          </div>
+          <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
+        </div>
+      </div>
+
+      <div id="tableView" class="tableView" hidden>
+        <div class="tableScroll">
+          <table id="dataTable"><thead></thead><tbody></tbody></table>
+        </div>
+        <div class="tablePager" id="tablePager"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="methodsModal" class="modal" hidden>
+    <div class="modalCard">
+      <button class="modalClose" id="methodsClose" aria-label="Close">×</button>
+      <div id="methodsBody" class="prose"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="scripts/appMain.js?v=20"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — Taiwan Housing Explorer</title>
+  <link rel="stylesheet" href="styles/appStyles.css?v=2" />
+</head>
+<body class="aboutBody">
+  <header class="appHeader">
+    <div>
+      <h1>Taiwan Housing Explorer</h1>
+      <p class="subtitle">About this project</p>
+    </div>
+    <a class="headerLink" href="index.html">← Back to the map</a>
+  </header>
+
+  <main class="aboutWrap">
+    <article class="prose">
+      <p class="lead">Short version: it's a map and a searchable table of house prices across Taiwan,
+      built out of the government's open transaction data. This page is me explaining what it's for and
+      how the thing actually works, because I think the how is the interesting part.</p>
+
+      <h2>What it's actually for</h2>
+      <p>Everything here comes from one source — Taiwan's 實價登錄 ("real price registration") data. By law,
+      property deals have to be reported, and the Ministry of the Interior dumps all of it out for free:
+      the price, the floor area, the number of rooms, the year the building went up, whether it came with a
+      parking space. Genuinely open, genuinely public. Also genuinely a pain to open and understand, which
+      is most of the reason this site exists.</p>
+      <p>What you get from the government is a folder of 200-odd CSV files, in Mandarin, split across
+      several files you have to stitch back together. You can't just look at that and learn anything. So the
+      goal of the site, in one sentence: take a data dump that's technically open but practically
+      unreadable, and turn it into something you can click around in a browser without knowing any Chinese
+      or any SQL. Pick a district, see what a place costs, watch how it's moved over the years, compare it
+      to everywhere else, filter down to "apartments with parking in Kaohsiung," and grab the raw numbers if
+      you want them.</p>
+
+      <h2>The data fights back</h2>
+      <p>A few things about the raw files ate way more of my time than I expected:</p>
+      <ul>
+        <li>The dates use the ROC (Minguo) calendar. Year 115 is 2026 — you add 1911. Simple once you know
+        it, except it's written as seven digits jammed together like <code>1150601</code>, and some columns
+        use <code>97年3月19日</code> instead, and rentals hand you a date <em>range</em> with a tilde in the
+        middle. So the first thing I wrote was a parser that swallows all of those and spits out normal
+        dates.</li>
+        <li>Floor counts are written in Chinese numerals. <code>十二層</code> means twelve floors. So there's
+        a little function that turns 一/十/百 into integers, which is a weirdly satisfying thing to write.</li>
+        <li>Every file has <em>two</em> header rows — Chinese, then an auto-translated English one that's
+        rough enough ("the berth category" for parking type) that I threw it out and did the translations
+        myself.</li>
+        <li>The "main use" column has 239 distinct values. Not rows — values. Including typos and a catch-all
+        that literally says "see the other registration items." You can't hardcode 239 cases, so I translate
+        the common ones, bucket the long tail as "other," and keep the original text so nothing's lost.</li>
+        <li>The one nice surprise: every record has a serial number (編號) that links the main file to its
+        land / building / parking sub-files, and it was unique everywhere with zero orphans. Government data
+        is almost never that clean and I honestly didn't trust it until I'd checked it three times.</li>
+      </ul>
+
+      <h2>Making it a real database</h2>
+      <p>All of it lands in a single SQLite file. I like SQLite here because it's one file, there's no server
+      to run, and it's the same engine your phone uses under the hood. The schema follows how you'd actually
+      think about the geography: a house sits in a district, a district in a city/county, a city in a region
+      (north / central / south / east / islands). So the numbers roll up and down that hierarchy. There's
+      also a tagging system — has parking, has a management committee, has an elevator — so you can slice by
+      features instead of only by place.</p>
+
+      <h2>The map, and the annoying fact that there are no coordinates</h2>
+      <p>Here's what the data flatly refuses to give you: latitude and longitude. You get a Chinese address
+      and a district name, and that's it. So to put anything on a map I had to bring my own geography. I
+      pulled an open dataset of Taiwan's township boundaries and worked out a centre point for each
+      district.</p>
+      <p>This is where it gets a bit maths-y, and it's my favourite part. You can't just average lat/long to
+      find a centre, because degrees aren't a flat, even grid — a degree of longitude is a different real
+      distance depending on how far north you are. So I reproject the shapes into EPSG:3826, a coordinate
+      system built specifically for Taiwan where the units are actual metres, find the centroid <em>there</em>,
+      then convert back to lat/long for the map. Same trick any time I'd want a real distance later (like
+      "how far to the nearest school" — not in yet, but the schema has a slot waiting for it).</p>
+      <p>For the coloured regions, I take all the little township shapes and dissolve them into one city or
+      region blob. All the geometry work is geopandas and Shapely, which is the standard Python stack for
+      this, and I store the shapes as WKT text right in the database so they load straight back into
+      geopandas — or open in QGIS — with no conversion.</p>
+      <p>Honest caveat: since I only have district centres, every house in a district gets dropped on the
+      exact same point. So the map is great for "where are the expensive clusters" and useless for "find me
+      this one building." That's a deliberate trade. Real per-house coordinates would mean geocoding tens of
+      thousands of addresses, which is slow and rate-limited, so I left hooks in the database for it and
+      moved on.</p>
+
+      <h2>Why it's just files, with no server</h2>
+      <p>The whole front end is plain HTML, CSS, and JavaScript. No React, no framework, because it's a map
+      and two charts, not air traffic control. The map is Leaflet, the time chart is Chart.js, both loaded
+      from a CDN. There's no backend at all — Python builds the database and then exports everything the page
+      needs as static JSON and GeoJSON, and the browser does the rest.</p>
+      <p>The part I like most is that the filtering happens live in the browser. Tick "has parking" or flip to
+      rentals and it recomputes the medians on the spot from the raw records. I use the median instead of the
+      mean on purpose: there's a single transaction in here worth something like NT$1.7 <em>billion</em>, and
+      one number like that drags an average all over the place — the median just shrugs.</p>
+      <p>The payoff of building it this way is that the entire site is a folder of files. Which means it can
+      be hosted free, basically forever, on something like GitHub Pages or Netlify, with nothing to keep
+      running and nothing to pay for. For a student project that might just sit online, that matters a lot.</p>
+
+      <h2>Stuff I already know is imperfect</h2>
+      <ul>
+        <li>It's district-level, not building-level — see the coordinates rant above.</li>
+        <li>School distance is stubbed out in the schema but not actually filled in.</li>
+        <li>It's built from a single data release, so while transaction dates run back to about 2016, most of
+        the volume is recent. Loading more quarters would make the "over time" charts a lot richer, and the
+        pipeline's already set up to take them.</li>
+        <li>The raw table will cheerfully show you the outliers, because it's meant to be the honest,
+        unfiltered view. The map hides them behind medians; the table doesn't.</li>
+      </ul>
+
+      <h2>Why I bothered</h2>
+      <p>None of this is groundbreaking. It's mostly the unglamorous work of taking data that exists but is
+      annoying and making it not annoying. But that turns out to be a huge chunk of what data work actually
+      is, and I picked up a pile doing it — map projections, why medians beat means, how to lay out a schema
+      you won't hate in a month. If you clicked around the map and noticed something you didn't know about
+      Taiwan, that was the whole idea.</p>
+
+      <p class="backLink"><a href="index.html">← Back to the explorer</a></p>
+    </article>
+  </main>
+</body>
+</html>
