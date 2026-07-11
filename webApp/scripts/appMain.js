@@ -6,6 +6,10 @@
 const DATA = "dataFiles/";
 const DATA_V = "?v=16";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
+// The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
+// semi-transparent polygon fills with hairline anti-aliased seams ("white cracks"). Render the
+// choropleth polygons with SVG instead — crisp fills, and there are only a few hundred of them.
+const polyRenderer = L.svg();
 const PALETTE = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"];
 const NO_DATA = "#e5e7eb";
 
@@ -291,6 +295,7 @@ function renderMap() {
     }).addTo(map);
   } else {
     dataLayer = L.geoJSON(fc, {
+      renderer: polyRenderer,
       style: (f) => ({ fillColor: fillFor(f), color: "#fff", weight: 1, fillOpacity: 0.78 }),
       onEachFeature: onEach,
     }).addTo(map);
