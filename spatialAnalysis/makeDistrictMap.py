@@ -48,11 +48,14 @@ def main() -> int:
 
     fig, ax = plt.subplots(figsize=(6.4, 8.4))
     fig.patch.set_facecolor("white")
-    # districts with no sales -> light grey, so the full Taiwan landmass still reads as a map
-    polys[polys["price"].isna()].plot(ax=ax, color="#eceff3", edgecolor="white", linewidth=0.25)
+    # Kill the white "cracks": paint the whole landmass as one solid grey base first, so any hairline
+    # gap between polygons shows grey land (not the white page) underneath. Then stroke every polygon in
+    # its OWN fill colour (edgecolor="face", not white) so district seams blend into the fill. districts
+    # with no sales stay grey; the base layer already covers them.
+    polys.plot(ax=ax, color="#eceff3", edgecolor="face", linewidth=0.4)
     polys[polys["price"].notna()].plot(
         ax=ax, column="price", cmap="YlOrRd", vmin=vmin, vmax=vmax,
-        edgecolor="white", linewidth=0.25, legend=True,
+        edgecolor="face", linewidth=0.4, legend=True,
         legend_kwds={"label": "Median sale price (NT$/m²)", "shrink": 0.42,
                      "format": FuncFormatter(lambda x, _: f"{x / 1000:.0f}k")})
     # frame the main island + Penghu (crops the far-west Kinmen / far-north Matsu specks)
