@@ -42,6 +42,9 @@ COUNTY = {
     "f": {"id": "168887",  # 新北市
           "cols": {"code": "areacode", "road": "street、road、section", "lane": "lane",
                    "alley": "alley", "num": "number", "x": "x_3826", "y": "y_3826"}},
+    "b": {"gdrive": "1Nl4xNrD2zxZSzzZAUUDZA31Ov8a72Q6P",  # 臺中市 (Google-Drive zip, WGS84 lat/lon)
+          "cols": {"code": "鄉鎮市區代碼", "road": "街_路段", "lane": "巷", "alley": "弄",
+                   "num": "號", "lat": "WGS84緯度", "lon": "WGS84經度"}},
 }
 _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
@@ -56,16 +59,24 @@ def _get(url, n=None):
     return r.read(n) if n else r.read()
 
 
-def ensureCsv(code, datasetId):
+def ensureCsv(code, cfg):
     path = os.path.join(CACHE, f"{code}.csv")
     if os.path.exists(path):
         return path
     os.makedirs(CACHE, exist_ok=True)
-    meta = json.loads(_get(f"https://data.gov.tw/api/v2/rest/dataset/{datasetId}"))["result"]
-    url = next(d["resourceDownloadUrl"] for d in meta["distribution"]
-               if (d.get("resourceFormat") or "").upper() == "CSV")
     print(f"  downloading {code} doorplate ...")
-    open(path, "wb").write(_get(url))
+    if "gdrive" in cfg:  # Google-Drive-hosted zip of a CSV (e.g. Taichung)
+        import io
+        import zipfile
+        raw = _get(f"https://drive.usercontent.google.com/download?id={cfg['gdrive']}&export=download&confirm=t")
+        z = zipfile.ZipFile(io.BytesIO(raw))
+        name = next(n for n in z.namelist() if n.lower().endswith(".csv"))
+        open(path, "wb").write(z.read(name))
+    else:  # data.gov.tw dataset -> direct CSV distribution
+        meta = json.loads(_get(f"https://data.gov.tw/api/v2/rest/dataset/{cfg['id']}"))["result"]
+        url = next(d["resourceDownloadUrl"] for d in meta["distribution"]
+                   if (d.get("resourceFormat") or "").upper() == "CSV")
+        open(path, "wb").write(_get(url))
     return path
 
 
@@ -81,13 +92,19 @@ def laneTok(s, marker):
 def buildIndex(code, cfg, townships):
     """Return (doormap, roadmap, districtNames) for a county."""
     c = cfg["cols"]
-    dp = pd.read_csv(ensureCsv(code, cfg["id"]), dtype=str).fillna("")
-    dp["_x"] = pd.to_numeric(dp[c["x"]], errors="coerce")
-    dp["_y"] = pd.to_numeric(dp[c["y"]], errors="coerce")
-    dp = dp.dropna(subset=["_x", "_y"]).copy()
-    lon, lat = Transformer.from_crs("EPSG:3826", "EPSG:4326", always_xy=True).transform(
-        dp["_x"].values, dp["_y"].values)
-    dp["lat"], dp["lon"] = lat, lon
+    dp = pd.read_csv(ensureCsv(code, cfg), dtype=str).fillna("")
+    if "lat" in c:  # dataset already carries WGS84 lat/lon (e.g. Taichung)
+        dp["lat"] = pd.to_numeric(dp[c["lat"]], errors="coerce")
+        dp["lon"] = pd.to_numeric(dp[c["lon"]], errors="coerce")
+    else:  # TWD97 (EPSG:3826) easting/northing -> reproject to WGS84
+        x = pd.to_numeric(dp[c["x"]], errors="coerce")
+        y = pd.to_numeric(dp[c["y"]], errors="coerce")
+        m = x.notna() & y.notna()
+        dp = dp[m].copy()
+        lon, lat = Transformer.from_crs("EPSG:3826", "EPSG:4326", always_xy=True).transform(
+            x[m].values, y[m].values)
+        dp["lat"], dp["lon"] = lat, lon
+    dp = dp.dropna(subset=["lat", "lon"]).copy()
     # district name per district-code via point-in-polygon (robust for odd-shaped districts)
     reps = dp.groupby(c["code"])[["lon", "lat"]].median().reset_index()
     pts = gpd.GeoDataFrame(reps, geometry=[Point(xy) for xy in zip(reps.lon, reps.lat)], crs="EPSG:4326")

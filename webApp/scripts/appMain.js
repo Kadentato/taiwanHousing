@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=15";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=16";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
 const PALETTE = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"];
 const NO_DATA = "#e5e7eb";
