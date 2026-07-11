@@ -17,7 +17,7 @@ from matplotlib.ticker import FuncFormatter  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-OUT = os.path.join(HERE, "districtMedianUnitPrice.png")
+OUT = os.path.join(HERE, "taiwanPriceMap.png")
 
 
 def main() -> int:
