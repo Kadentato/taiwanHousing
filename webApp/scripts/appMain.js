@@ -296,7 +296,7 @@ function renderMap() {
   } else {
     dataLayer = L.geoJSON(fc, {
       renderer: polyRenderer,
-      style: (f) => ({ fillColor: fillFor(f), color: "#fff", weight: 1, fillOpacity: 0.78 }),
+      style: (f) => ({ fillColor: fillFor(f), color: "#fff", weight: 1, fillOpacity: 1 }),
       onEachFeature: onEach,
     }).addTo(map);
   }
@@ -987,10 +987,18 @@ async function init() {
     zoomAnimation: false,
   });
   map.fitBounds(TAIWAN_BOUNDS);
-  // Clean, English-labelled basemap (no OSM mountain-peak triangles / clutter).
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  // Clean, English-labelled basemap. Use the NO-LABELS base plus a labels-only layer on top, so the
+  // choropleth can use an opaque fill (basemap roads no longer bleed through the districts as white
+  // "cracks") while place names stay readable above the coloured districts.
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
     attribution: '© OpenStreetMap contributors © CARTO',
     subdomains: "abcd", maxZoom: 19,
+  }).addTo(map);
+  map.createPane("labels");
+  map.getPane("labels").style.zIndex = 650;            // above the vector overlay pane (z-index 600)
+  map.getPane("labels").style.pointerEvents = "none";  // let clicks pass through to the districts
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
+    subdomains: "abcd", maxZoom: 19, pane: "labels",
   }).addTo(map);
 
   try {
