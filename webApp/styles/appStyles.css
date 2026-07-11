@@ -230,6 +230,13 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 .leaflet-popup-content b { font-size: 14px; }
 .popupStat { display: flex; justify-content: space-between; gap: 16px; }
 .popupStat span { color: var(--muted); }
+/* Hover tooltip for individual house dots (same content as the old click popup). */
+.leaflet-tooltip.houseTip {
+  font-size: 12px; line-height: 1.5; padding: 8px 11px; border-radius: 8px;
+  white-space: normal; min-width: 172px; box-shadow: 0 3px 10px rgba(0, 0, 0, .18);
+  pointer-events: none;
+}
+.leaflet-tooltip.houseTip b { font-size: 13px; }
 
 .loadingOverlay {
   position: fixed; inset: 0; background: rgba(241,245,249,.92); display: flex;

@@ -345,7 +345,7 @@ function renderHouses() {
     return L.circleMarker(pos, {
       radius: 4.5, fillColor: v == null ? NO_DATA : colorFor(v, bins),
       color: "#1e293b", weight: 0.5, fillOpacity: 0.82,
-    }).bindPopup(housePopup(r));
+    }).bindTooltip(housePopup(r), { direction: "top", offset: [0, -3], opacity: 1, className: "houseTip" });
   });
   dataLayer = L.featureGroup(markers).addTo(map);
   updateLegend(bins, metric,
