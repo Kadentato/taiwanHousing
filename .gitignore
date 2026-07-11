@@ -24,3 +24,6 @@ Thumbs.db
 
 # Note: geoReference/ IS committed on purpose — it is generated once by
 # setupGeoReference.py and then bundled so builds stay fully offline.
+
+# Doorplate geocoding source files (large, re-downloadable via geocodeDoorplate.py)
+geoReference/doorplate/

@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=13";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=15";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
 const PALETTE = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"];
 const NO_DATA = "#e5e7eb";
@@ -329,12 +329,20 @@ function renderHouses() {
   const R = 0.014;                                   // ~1.4 km jitter radius, in degrees
   const cosLat = Math.cos(lat * Math.PI / 180) || 1;
 
+  let realN = 0;
   const markers = rs.map((r, i) => {
-    // two low-discrepancy sequences -> stable, evenly-spread jitter (no reshuffle on re-render)
-    const angle = 2 * Math.PI * ((i * 0.6180339887) % 1);
-    const rad = R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
     const v = metric.val(r);
-    return L.circleMarker([lat + rad * Math.sin(angle), lon + rad * Math.cos(angle) / cosLat], {
+    // Use the real geocoded coordinate (門牌 address point) when we have it; otherwise
+    // fall back to a deterministic, evenly-spread jitter within the district.
+    let pos;
+    if (r.lat != null && r.lon != null) {
+      pos = [r.lat, r.lon]; realN++;
+    } else {
+      const angle = 2 * Math.PI * ((i * 0.6180339887) % 1);
+      const rad = R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
+      pos = [lat + rad * Math.sin(angle), lon + rad * Math.cos(angle) / cosLat];
+    }
+    return L.circleMarker(pos, {
       radius: 4.5, fillColor: v == null ? NO_DATA : colorFor(v, bins),
       color: "#1e293b", weight: 0.5, fillOpacity: 0.82,
     }).bindPopup(housePopup(r));
@@ -342,7 +350,10 @@ function renderHouses() {
   dataLayer = L.featureGroup(markers).addTo(map);
   updateLegend(bins, metric,
     `${rs.length.toLocaleString()} individual ${state.type} homes · each dot is one sale, `
-    + `coloured by ${metric.short} · positions jittered within the district (no exact addresses in the open data)`);
+    + `coloured by ${metric.short} · `
+    + (realN
+        ? `${Math.round(realN / rs.length * 100)}% placed at their real address (門牌 geocoded), the rest jittered`
+        : `positions jittered within the district (no exact addresses in the open data)`));
 }
 
 // Popup for a single transaction (individual house drill-in).

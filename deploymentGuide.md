@@ -19,6 +19,7 @@ python fetchHistory.py                                                      # op
 python modeling/buildDataset.py                                             # sales.parquet (+ --txn-suffix b => presale)
 python buildDatabase.py --seasons-dir sourceData --sales-only --no-subtables   # web dataFiles + local DB
 python publishSampleDb.py            # 19 MB browse-sample sqlite
+python geocodeDoorplate.py           # real map coords for configured counties (門牌 geocoding)
 python exportSeriesCsv.py            # marketSeriesMonthly.csv (tidy series)
 python modeling/exportPredictor.py   # predictor.json (client-side model + provenance stamp)
 ```

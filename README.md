@@ -104,10 +104,10 @@ tests/                  pytest unit + smoke tests
 
 ## Design notes
 
-- **No coordinates / no schools in the source.** Mapping is at **district** resolution using bundled
-  centroids derived from official township boundaries (offline). Per-house geocoding and true
-  school-distance are intentionally deferred behind nullable columns
-  (`latitude`, `longitude`, `nearestSchool*`) — a future `enrichSchools.py` can fill them.
+- **Per-house geocoding.** Taipei & New Taipei sales are placed at their **real address** via the
+  government 門牌坐標 (doorplate) open data — `geocodeDoorplate.py` matches ~90% to an exact building
+  (offline, reprojected TWD97→WGS84). Other counties fall back to district-level jitter until their
+  doorplate dataset is added (append a config entry). True school-distance stays deferred (`nearestSchool*`).
 - **Time coverage.** Most volume sits in the current release window, but transaction dates extend back
   to ~2016, so the "market over time" charts have real history. Add more LVR releases to deepen it.
 - **Housing views** exclude land-only and parking-only transactions so price metrics describe dwellings.
