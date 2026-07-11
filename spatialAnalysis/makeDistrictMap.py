@@ -7,6 +7,8 @@ polygons + per-district aggregates) — no database needed.
 from __future__ import annotations
 
 import os
+import re
+from collections import Counter
 
 import matplotlib
 matplotlib.use("Agg")
@@ -23,9 +25,22 @@ OUT = os.path.join(HERE, "taiwanPriceMap.png")
 def main() -> int:
     polys = gpd.read_file(os.path.join(ROOT, "geoReference", "townshipBoundaries.geojson"))
     agg = gpd.read_file(os.path.join(ROOT, "webApp", "dataFiles", "districtAggregates.geojson"))
-    price = {(r.cityCode, r.districtZh): r.saleMedUnitPrice for r in agg.itertuples()
+    # Normalise names before joining: the bundled boundary file predates Taoyuan's 2014 upgrade to a
+    # municipality, so it still uses old 鄉/鎮/市 suffixes (中壢市 vs 中壢區), mixes the 臺/台 variant,
+    # and adds notes like 鼓山區(海). Strip the admin suffix + any "(…)" note and unify 臺→台.
+    def norm(s):
+        s = re.sub(r"\(.*?\)", "", str(s)).replace("臺", "台")
+        return re.sub(r"[鄉鎮市區]$", "", s).strip()
+
+    price = {(r.cityCode, norm(r.districtZh)): r.saleMedUnitPrice for r in agg.itertuples()
              if r.saleMedUnitPrice is not None}
-    polys["price"] = [price.get((r.cityCode, r.town)) for r in polys.itertuples()]
+    # Provincial cities (Hsinchu City, Chiayi City) are recorded at the city level — a single price
+    # row, not per-district — so fall back to that one price for all of their district polygons.
+    nRows = Counter(r.cityCode for r in agg.itertuples() if r.saleMedUnitPrice is not None)
+    cityFallback = {r.cityCode: r.saleMedUnitPrice for r in agg.itertuples()
+                    if r.saleMedUnitPrice is not None and nRows[r.cityCode] == 1}
+    polys["price"] = [price.get((r.cityCode, norm(r.town)), cityFallback.get(r.cityCode))
+                      for r in polys.itertuples()]
     print(f"matched {polys['price'].notna().sum()}/{len(polys)} districts to a median price")
 
     vals = polys["price"].dropna()
