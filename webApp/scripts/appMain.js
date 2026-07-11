@@ -296,7 +296,10 @@ function renderMap() {
   } else {
     dataLayer = L.geoJSON(fc, {
       renderer: polyRenderer,
-      style: (f) => ({ fillColor: fillFor(f), color: "#fff", weight: 1, fillOpacity: 1 }),
+      // Stroke each polygon in its OWN fill colour (not white): a white border reads as a "crack"
+      // between regions, and the stroke also slightly dilates each polygon to cover antialiasing
+      // seams where neighbours meet. Same idea as edgecolor="face" on the README map.
+      style: (f) => { const c = fillFor(f); return { fillColor: c, color: c, weight: 1, fillOpacity: 1 }; },
       onEachFeature: onEach,
     }).addTo(map);
   }
