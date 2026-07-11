@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=16";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=17";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
 // semi-transparent polygon fills with hairline anti-aliased seams ("white cracks"). Render the
