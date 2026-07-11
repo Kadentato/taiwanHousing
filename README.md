@@ -1,127 +1,73 @@
 # Taiwan Housing Explorer
 
-A database, interactive map, and in-browser **price predictor** for Taiwan housing transactions,
-built in Python from the government **Actual Price Registration** (實價登錄 / LVR) open data. The
-Mandarin source is translated to English, normalised into a clean SQLite schema, and exported to a
-**fully static web app** (Leaflet + Chart.js) that hosts for free, 24/7, with no server.
+An interactive website for exploring Taiwan's housing market, built from the government's public
+**Actual Price Registration (實價登錄 / LVR)** records. It runs entirely in your browser — no login,
+no paywall, no backend.
 
-**Live site:** https://kadentato.github.io/taiwanHousing/
+**Try it here → https://kadentato.github.io/taiwanHousing/**
 
-![District median unit price](spatialAnalysis/districtMedianUnitPrice.png)
+## What it is
 
-## What you get
+Every property sale in Taiwan gets reported to the government and published as open data, but the raw
+files are messy, written in Mandarin, and honestly not much fun to dig through. This site takes the
+full history of those records, cleans them up, translates them into English, and turns them into
+something you can actually explore — about **3.5 million housing sales from 2012 to 2026**.
 
-- **`database/taiwanHousing.sqlite`** — the canonical database: `regions → cities → districts → houses`
-  plus `houseBuildings / houseLandParcels / houseParking` sub-tables and a `tags / houseTags` system.
-  Geometry is stored as WKT (EPSG:4326) so it round-trips into geopandas and opens in QGIS.
-- **`webApp/`** — a static dashboard:
-  - **Map / Records** toggle (top-left): a Leaflet map (choropleth by median price / volume / size) +
-    Chart.js time series, and a sortable **Records** table with a **Download CSV** button.
-    Click to drill in with a zoom — region → city → district → a **per-transaction distribution**
-    (strip plot by price; the source has no exact coordinates, so no fabricated map points) — and press
-    **Esc** to zoom back out one level. Transaction-type, geographic, and tag filters recompute live.
-  - **Statistical layer** — every aggregate shows **n, IQR and a bootstrap 95% CI**; controls for
-    **minimum sample size**, **transaction-year window**, **excluding deals** (related-party / additions /
-    cancelled), **1% winsorizing**, **nominal vs. real (CPI) prices**, and **fixed vs. adaptive colour
-    scales**. Toggle **LISA price clusters** (hot/cold spots) on the district map. A **Methods & data
-    quality** panel reports the sampling frame, missingness, Moran's I, and a hedonic price model.
-  - **Browse database** (`database.html`, linked top-right) — the actual SQLite file loaded in the browser
-    with **sql.js** (WebAssembly): every table, all columns, one continuous scroll, plus an ad-hoc SQL box.
-  - **Price predictor** (`predictor.html`, linked top-right) — describe a home and get an estimated
-    price with calibrated 50/80/95% ranges, computed client-side from a gradient-boosted model.
-  - **About** (`about.html`) — what the project is and how it's built.
-  CSS/JS are version-tagged (`?v=`) so browsers don't serve stale assets after an update.
-- **`spatialAnalysis/exploreDistricts.py`** — a geopandas demo (per-district stats + a plot).
+## What's on the site
 
-## Data covered
+**🗺️ The map** — Prices by area, from a national view all the way down to individual homes. Click
+through region → city → district, and for **Taipei, New Taipei and Taichung** the individual sales
+appear at their **real street addresses** (geocoded from the government's address data). Hover over any
+dot to see that home's price, size, layout, age, and features. There's also a time-series chart going
+back to 2012, a sortable records table you can download as a CSV, and filters for transaction type,
+year range, and property tags.
 
-The live site runs on the **full LVR history, 2012 Q3 → 2026 Q2, housing sales only** (~3.5M
-de-duplicated transactions). Each record carries price, area (m² and ping), bed/bath counts, floors,
-building type, materials, build age, parking, and management/elevator flags. See
-[`dataDictionary.md`](dataDictionary.md) for fields and [`modelCard.md`](modelCard.md) for the
-predictor's assumptions, validated accuracy, and limitations.
+**🔮 The price predictor** — Describe a home (where it is, how big, how old, its features) and get an
+estimated price, plus 50% / 80% / 95% confidence ranges so you can see how sure the model actually is.
+It's a gradient-boosted model that runs completely in your browser, so nothing you type gets sent
+anywhere.
 
-### Adding history (2012 → now)
-Registration began **2012 Q3**, and the MOI publishes every quarter since. Fetch and ingest them:
+**🔎 Browse the data** — The actual dataset, loaded right in your browser, with every table and column
+and an SQL box if you want to run your own queries.
 
-```bash
-python fetchHistory.py --from 2022          # download quarterly ZIPs into sourceData/ (skips cached)
-python buildDatabase.py --seasons-dir sourceData   # load all, newest-first, de-duplicated on 編號
-```
+## What you can use it for
 
-`fetchHistory.py` pulls the MOI season ZIPs (`--from`/`--to` accept `2024`, `2024Q3`, or `113S3`;
-default = 2012 Q3 → now) and is resumable. Scale notes: **a single quarter is ~130k–200k transactions**,
-so the full history is millions of rows and the SQLite DB grows to ~1 GB+. The build stays efficient
-(batched inserts; ~40 s/quarter), but at that size the DB is **local-only** (query it in DB Browser /
-geopandas) — the web app keeps running on the exported aggregates (computed on the *full* data) plus a
-**per-city sample** of records (4,000) so the browser stays fast. The map/stats and the time chart
-default to the whole span (2012→latest); narrow the year filter for a recent-only view.
+- **House hunting, or just being curious** — see what homes in a given neighbourhood actually sold for,
+  compare which districts are pricey versus affordable, and get a rough idea of what a specific place
+  might be worth.
+- **Learning statistics** — it's a big, real dataset with a genuine time-series component, which makes
+  it great for practising things like trend analysis, medians versus means, confidence intervals, and
+  spatial patterns. There's even a tidy CSV of the monthly price series if you'd rather load it straight
+  into pandas or R.
+- **Getting a feel for the market** — long-run price trends by area and property type, how far the
+  market has moved, and where the activity actually is.
 
-## Quick start
+## About the data (and some honesty)
 
-**Just want to view it?** Double-click **`start.bat`** — it serves the app and opens
-`http://localhost:8777` in your browser. Close the "Taiwan Housing server" window to stop.
-(Only needs Python; the app is already built.)
+The site uses the **full LVR history, 2012 Q3 → 2026 Q2, housing sales only (~3.5M de-duplicated
+deals)**. A few things worth knowing before you read too much into it:
 
-**To (re)build the data or run everything manually:**
+- **Prices are nominal NT$**, taken straight from the registry. The most recent months always
+  undercount a bit, because sales are disclosed in batches with a lag.
+- **Exact house locations only exist for Taipei, New Taipei and Taichung** (about 82–90% of their
+  sales). Everywhere else, the dots are scattered within the district, since the source doesn't provide
+  coordinates there yet.
+- **The predictor is an estimate, not an appraisal.** A lot of what makes one home cost more than
+  another — renovations, the exact floor, the view, how the negotiation went — simply isn't in the
+  public data, so treat the ranges as a ballpark rather than a promise. Please don't use it as financial
+  advice.
 
-```bash
-pip install -r requirements.txt
+Want the details? [`dataDictionary.md`](dataDictionary.md) explains every field, and
+[`modelCard.md`](modelCard.md) covers how the predictor works, how accurate it is, and where it
+shouldn't be trusted.
 
-# 1) ONE-TIME: download Taiwan township boundaries and bundle centroids/polygons.
-#    After this, every build is fully offline. (already run; re-run to refresh)
-python setupGeoReference.py
+## How it's built
 
-# 2) Build the database + web data from the source CSVs.
-python buildDatabase.py            # --source-dir to point elsewhere
+It's a fully static site — just HTML, CSS, and JavaScript reading pre-computed data files — so it hosts
+for free on GitHub Pages and stays up 24/7 with no server to run, and every push auto-deploys. If you'd
+like to run or rebuild it yourself, [`deploymentGuide.md`](deploymentGuide.md) has the steps.
 
-# 3) Preview the web app locally.
-python -m http.server 8777 --directory webApp
-#    open http://localhost:8777
+## Credits
 
-# optional: geopandas spatial-stats demo + plot
-python spatialAnalysis/exploreDistricts.py
-
-# optional: run the tests
-pytest
-```
-
-The source CSV folder defaults to `C:\Users\Caden\Downloads\lvr_landcsv`
-(override with `python buildDatabase.py --source-dir <path>`).
-
-## Project layout
-
-```
-buildDatabase.py        one command: schema → load → tag → spatial → export
-setupGeoReference.py    one-time geo bootstrap (network)
-dataPipeline/           ETL: parsers, mappings, schema, loader, tagging, spatial, exporter
-geoReference/           bundled township boundaries + district centroids (committed)
-database/               built SQLite database
-webApp/                 static site (deploy this folder)  — see deploymentGuide.md
-spatialAnalysis/        geopandas demo + output plot
-tests/                  pytest unit + smoke tests
-```
-
-## Design notes
-
-- **Per-house geocoding.** Taipei, New Taipei & Taichung sales are placed at their **real address** via
-  the government 門牌坐標 (doorplate) open data — `geocodeDoorplate.py` matches ~82–90% to an exact
-  building (offline; TWD97→WGS84 or native WGS84; district by point-in-polygon). Other counties fall back
-  to district-level jitter until their doorplate dataset is added (append a config entry). True
-  school-distance stays deferred (`nearestSchool*`).
-- **Time coverage.** Most volume sits in the current release window, but transaction dates extend back
-  to ~2016, so the "market over time" charts have real history. Add more LVR releases to deepen it.
-- **Housing views** exclude land-only and parking-only transactions so price metrics describe dwellings.
-- **Naming:** files, directories, DB tables/columns and JSON keys use lowerCamelCase (only
-  `requirements.txt`, `README.md`, `index.html` keep their tooling-fixed names).
-
-## Deployment
-
-The `webApp/` folder is 100% static and **auto-deploys to GitHub Pages** on every push to `main`
-(`.github/workflows/deploy.yml`) — live at https://kadentato.github.io/taiwanHousing/. Full steps,
-including Cloudflare/Netlify, in [`deploymentGuide.md`](deploymentGuide.md).
-
-## Attribution
-
-Source: Ministry of the Interior, Taiwan — Real Estate Actual Price Registration (不動產成交案件實際資訊).
-Township boundaries: ronnywang/twgeojson (public). Map tiles: © OpenStreetMap contributors.
+Data: Ministry of the Interior, Taiwan — Real Estate Actual Price Registration (不動產成交案件實際資訊).
+Map boundaries: ronnywang/twgeojson. Map tiles: © OpenStreetMap contributors.
