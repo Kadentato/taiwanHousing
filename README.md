@@ -6,6 +6,8 @@ no paywall, no backend.
 
 **Try it here → https://kadentato.github.io/taiwanHousing/**
 
+![A map of Taiwan with every district shaded by its median housing sale price — the Taipei area and the west-coast cities glow red, while rural districts stay pale.](spatialAnalysis/districtMedianUnitPrice.png)
+
 ## What it is
 
 Every property sale in Taiwan gets reported to the government and published as open data, but the raw
