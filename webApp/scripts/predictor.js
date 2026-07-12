@@ -15,7 +15,7 @@ const fmtUnit = (v) => "NT$" + Math.round(v).toLocaleString() + "/m²";
 // each with realistic floor bounds so you can't build a 14-storey walk-up.
 const RESIDENTIAL = ["residentialTower", "elevatorBuildingLowRise", "walkUpApartment", "townhouse"];
 const TYPE_FLOORS = {
-  townhouse: { def: 3, max: 5 },
+  townhouse: { def: 2, max: 5 },   // houses are commonly 1-4 storeys; don't assume 3
   walkUpApartment: { def: 4, max: 6 },
   elevatorBuildingLowRise: { def: 8, max: 12 },
   residentialTower: { def: 13, max: 42 },
@@ -125,8 +125,10 @@ function compute() {
     cityCode: $("pCity").value, districtEn: $("pDistrict").value,
     // size inputs are in m²; the model works in ping
     livingAreaPing: num("pSize", 100) / model.m2PerPing, buildingAgeYears: num("pAge", d.buildingAgeYears),
-    // a house owns every storey, so its "floor" is the whole building
-    transferFloor: isHouse ? tot : num("pFloor", d.transferFloor), totalFloors: tot,
+    // A house has no single "unit floor" (you own the whole building), and in the LVR training
+    // data townhouses carry no transfer-floor at all — so use the model's default rather than
+    // pinning it to the top storey ("owns it all"), which the model was never trained on.
+    transferFloor: isHouse ? d.transferFloor : num("pFloor", d.transferFloor), totalFloors: tot,
     bedrooms: num("pBeds", d.bedrooms), bathrooms: num("pBaths", d.bathrooms),
     livingRooms: num("pLiving", d.livingRooms), landAreaPing: num("pLandPing", 16) / model.m2PerPing,
     mainBuildingRatio: num("pMainRatio", d.mainBuildingRatio),
