@@ -18,8 +18,8 @@ something you can actually explore — about **3.5 million housing sales from 20
 ## What's on the site
 
 **🗺️ The map** — Prices by area, from a national view all the way down to individual homes. Click
-through region → city → district, and for **Taipei, New Taipei and Taichung** the individual sales
-appear at their **real street addresses** (geocoded from the government's address data). Hover over any
+through region → city → district, and for **Taipei, New Taipei, Taichung, Taoyuan and Tainan** the
+individual sales appear at their **real street addresses** (geocoded from the government's address data). Hover over any
 dot to see that home's price, size, layout, age, and features. There's also a time-series chart going
 back to 2012, a sortable records table you can download as a CSV, and filters for transaction type,
 year range, and property tags.
@@ -51,9 +51,9 @@ deals)**. A few things worth knowing before you read too much into it:
 
 - **Prices are nominal NT$**, taken straight from the registry. The most recent months always
   undercount a bit, because sales are disclosed in batches with a lag.
-- **Exact house locations only exist for Taipei, New Taipei and Taichung** (about 82–90% of their
-  sales). Everywhere else, the dots are scattered within the district, since the source doesn't provide
-  coordinates there yet.
+- **Exact house locations only exist for the five biggest metros — Taipei, New Taipei, Taichung,
+  Taoyuan and Tainan** (roughly 70–90% of their sales). Everywhere else, the dots are scattered within
+  the district, since the source doesn't provide coordinates there yet.
 - **The predictor is an estimate, not an appraisal.** A lot of what makes one home cost more than
   another — renovations, the exact floor, the view, how the negotiation went — simply isn't in the
   public data, so treat the ranges as a ballpark rather than a promise. Please don't use it as financial

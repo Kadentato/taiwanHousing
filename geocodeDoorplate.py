@@ -45,6 +45,12 @@ COUNTY = {
     "b": {"gdrive": "1Nl4xNrD2zxZSzzZAUUDZA31Ov8a72Q6P",  # 臺中市 (Google-Drive zip, WGS84 lat/lon)
           "cols": {"code": "鄉鎮市區代碼", "road": "街_路段", "lane": "巷", "alley": "弄",
                    "num": "號", "lat": "WGS84緯度", "lon": "WGS84經度"}},
+    "h": {"tycg": "ec47dbd5-9ed8-4c8d-8ce1-ccb63b1b72e6",  # 桃園市 (Taoyuan portal, monthly TWD97 snapshots)
+          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "lane": "巷", "alley": "弄",
+                   "num": "號", "x": "橫座標", "y": "縱座標"}},
+    "d": {"url": "https://data.tainan.gov.tw/File/ResourceCsvDownload/af44f904-2f4c-49b2-aaf8-1a64dce09bd4",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街、路段", "lane": "巷", "alley": "弄",  # 臺南市 114年 (TWD97)
+                   "num": "號", "x": "橫座標", "y": "縱座標"}},
 }
 _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
@@ -57,6 +63,20 @@ _tok = lambda pat, s: (re.search(pat, s) or re.search(r"$^", "")) and (re.search
 def _get(url, n=None):
     r = urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), context=_CTX, timeout=300)
     return r.read(n) if n else r.read()
+
+
+def _tycgLatestCsvUrl(pid):
+    """Taoyuan's portal publishes the doorplate set as one CSV resource per month
+    (a full cumulative snapshot each time). Resolve the newest month's download URL."""
+    info = json.loads(_get(f"https://opendata.tycg.gov.tw/api/v1/resource.info?pid={pid}"))["payload"]
+    csvs = [r for r in info if (r.get("file_format") or "").upper() == "CSV"]
+
+    def ym(r):
+        m = re.search(r"\((\d+)年(\d+)月", r.get("name", ""))
+        return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+    rid = max(csvs, key=ym)["rid"]  # latest monthly snapshot = most complete
+    return f"https://opendata.tycg.gov.tw/api/v1/dataset/{pid}/resource/{rid}/download"
 
 
 def ensureCsv(code, cfg):
@@ -72,6 +92,10 @@ def ensureCsv(code, cfg):
         z = zipfile.ZipFile(io.BytesIO(raw))
         name = next(n for n in z.namelist() if n.lower().endswith(".csv"))
         open(path, "wb").write(z.read(name))
+    elif "tycg" in cfg:  # Taoyuan opendata portal -> newest monthly CSV snapshot
+        open(path, "wb").write(_get(_tycgLatestCsvUrl(cfg["tycg"])))
+    elif "url" in cfg:  # a direct CSV download URL (e.g. a county open-data file)
+        open(path, "wb").write(_get(cfg["url"]))
     else:  # data.gov.tw dataset -> direct CSV distribution
         meta = json.loads(_get(f"https://data.gov.tw/api/v2/rest/dataset/{cfg['id']}"))["result"]
         url = next(d["resourceDownloadUrl"] for d in meta["distribution"]
@@ -89,8 +113,15 @@ def laneTok(s, marker):
     return re.sub(marker + "$", "", str(s)).translate(FW).strip()
 
 
-def buildIndex(code, cfg, townships):
-    """Return (doormap, roadmap, districtNames) for a county."""
+def buildIndex(code, cfg, townships, currentNames=None):
+    """Return (doormap, roadmap, districtNames) for a county.
+
+    ``currentNames`` = the city's up-to-date district names from the DB. The bundled
+    township polygons can carry stale names (e.g. Taoyuan's pre-2014 中壢市/大溪鎮 vs the
+    current 中壢區/大溪區 the LVR addresses use), so we remap the point-in-polygon name to
+    the current one by stem (strip the 鄉/鎮/市/區 suffix). Without this, every Taoyuan
+    address collides on the "桃園市" city prefix and nothing joins.
+    """
     c = cfg["cols"]
     dp = pd.read_csv(ensureCsv(code, cfg), dtype=str).fillna("")
     if "lat" in c:  # dataset already carries WGS84 lat/lon (e.g. Taichung)
@@ -111,6 +142,10 @@ def buildIndex(code, cfg, townships):
     towns = townships[townships["cityCode"] == code][["town", "geometry"]]
     joined = gpd.sjoin(pts, towns, how="left", predicate="within")
     code2name = dict(zip(joined[c["code"]], joined["town"]))
+    if currentNames:  # remap stale township names -> current LVR district names by stem
+        stem = lambda s: re.sub(r"[鄉鎮市區]$", "", str(s))
+        cur = {stem(n): n for n in currentNames}
+        code2name = {k: cur.get(stem(v), v) for k, v in code2name.items()}
     dp["district"] = dp[c["code"]].map(code2name)
     dp = dp[dp["district"].notna()]
     dp["ln"] = dp[c["lane"]].map(lambda s: laneTok(s, "巷"))
@@ -157,8 +192,10 @@ def main(argv):
             print(f"[{code}] no doorplate config — skipped (keeps jitter fallback)")
             continue
         print(f"[{code}] building doorplate index ...")
-        doormap, roadmap, districts = buildIndex(code, COUNTY[code], townships)
         cid = conn.execute("SELECT cityId FROM cities WHERE fileCode=?", (code,)).fetchone()[0]
+        currentNames = [r[0] for r in conn.execute(
+            "SELECT nameZh FROM districts WHERE cityId=? AND nameZh IS NOT NULL", (cid,))]
+        doormap, roadmap, districts = buildIndex(code, COUNTY[code], townships, currentNames)
         cols = ",".join(["houseId", *KEEP, "address"])
         h = pd.read_sql(f"SELECT {cols} FROM houses WHERE cityId={cid} AND transactionType='sale' "
                         "AND address IS NOT NULL", conn)
