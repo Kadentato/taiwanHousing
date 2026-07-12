@@ -51,6 +51,12 @@ COUNTY = {
     "d": {"url": "https://data.tainan.gov.tw/File/ResourceCsvDownload/af44f904-2f4c-49b2-aaf8-1a64dce09bd4",
           "cols": {"code": "鄉鎮市區代碼", "road": "街、路段", "lane": "巷", "alley": "弄",  # 臺南市 114年 (TWD97)
                    "num": "號", "x": "橫座標", "y": "縱座標"}},
+    # 高雄市: api.kcg.gov.tw service (slug {rocYear}-kh-address; TWD97, Taipei-schema columns). As of
+    # 2026-07 the platform's data-reader backend returns a server-side 403 for ALL years — run once it
+    # recovers: `python geocodeDoorplate.py e` (bump {rocYear} to the latest published).
+    "e": {"url": "https://api.kcg.gov.tw/api/Service/Csv/115-kh-address",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "lane": "巷", "alley": "弄",
+                   "num": "號", "x": "橫座標", "y": "縱座標"}},
 }
 _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
