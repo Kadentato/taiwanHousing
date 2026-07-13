@@ -86,7 +86,9 @@ faithful translation isn't 1:1.
 
 `districts` → `cities` (21, file codes a–x) → `regions` (5: Northern/Central/Southern/Eastern/Outlying
 Islands, per the 主計總處 grouping with Yilan in the North) → national. Each level stores a centroid and a
-WKT geometry (districts = point, cities/regions = dissolved polygon).
+WKT geometry (districts = point, cities/regions = dissolved polygon). The **region** tier still exists in
+the schema (and the monthly series), but the web map now drills **city → district** only — the region map
+level was removed.
 
 District English names (`districts.nameEn`) are romanised from the Mandarin via Hanyu Pinyin (`pypinyin`)
 with overrides for established spellings (e.g. 淡水→Tamsui, 鹿港→Lukang; directional 東/西/南/北/中 →
@@ -97,6 +99,40 @@ East/West/South/North/Central) — see `dataPipeline/districtNames.py`.
 Parking: `hasParking`, `noParking`, `parkingType:{rampPlane,rampMechanical,firstFloorPlane,liftMechanical,liftPlane,tower,other}`.
 Management: `hasManagementOrg`, `noManagementOrg`, `hasElevator`, `noElevator`.
 New categories are added by extending `dataPipeline/tagRules.py`.
+
+## Data cleaning & attrition (raw → clean)
+
+Every step below removes only what it should; nothing silently deletes a city's real activity. Counts are
+for **sales** over the full history (101S3–115S2 / 2012 Q3 – 2026 Q2).
+
+| # | Step | What it does | Rows in | Rows out | Dropped |
+|---|------|--------------|--------:|---------:|--------:|
+| 1 | Raw load | Read every season's sale main-file (`*_lvr_land_a.csv`); parse ROC dates, Chinese-numeral floors, two header rows; `quoting=QUOTE_NONE` for the unbalanced quotes | — | 4,825,329 | — |
+| 2 | De-duplicate | The same deal re-appears across overlapping quarterly releases; keep one per serial number (`編號`) | 4,825,329 | 4,810,276 | 15,053 (0.3%) |
+| 3 | Housing filter | Drop **land-only** (土地) and **parking-only** (車位) transactions; keep building/house sales | 4,810,276 | 3,493,822 | 1,316,454 (27%) |
+| 4 | Date sanity | Drop missing/impossible dates; keep 2012 → present | 3,493,822 | ~3,485,000 | ~8k (0.2%) |
+| 5 | Price sanity *(model only)* | Drop unit price < NT$5,000 or > 3,000,000 /m² (data-entry errors) | ~3,485,000 | ~3,470,000 | ~5,600 (0.16%) |
+
+So the cleaning removes **one big, deliberate slice** (land/parking, 27%) and then <0.5% of genuine
+data-quality junk. A city's monthly sale volume is essentially untouched.
+
+**Why the map/table can *look* like "New Taipei had <10 sales in a 2025 month".** Only one view is built
+from the full data:
+- The **time-series chart** (`monthlyMarketSeries.json`) uses **all** cleaned housing sales — true monthly
+  counts and medians. New Taipei genuinely has **~2,000–2,900 sales every month** through 2025.
+- The **map** and **records table** work off a random **≤ 2,000 records per city** (`MAX_RECORDS_PER_CITY`),
+  so client-side filters (tags, year, deal-quality) stay instant. The map's **price colours** are medians of
+  that sample (robust — a good estimate of the true median), but any **count** shown there — the "Transaction
+  count" colour metric, the "Transactions (n)" figure, the number of dots — is the **sample size** (capped at
+  2,000/city), not the real total. Spread over 170 months that's ~10 dots/month. **That is the display sample,
+  not the cleaned dataset** — for real volumes read the time-series chart, not the dots.
+
+**Not dropped, only flagged** (so you can include or exclude them): related-party deals 200,464, cancelled
+deals 80, deals with an out-of-registry addition 360,086. The predictor trains on **arm's-length deals only**
+(drops related-party); the explorer keeps them and lets you filter.
+
+**Disclosure lag:** LVR reveals transactions in batches, so the newest months undercount. Loaders/exporters
+treat any month below 50% of recent-stable median volume as "not yet complete" and exclude it from "latest".
 
 ## Shipped data products (one canonical layer, read many ways)
 
@@ -109,9 +145,10 @@ derived from it and is what actually ships / is consumed. Three audiences read t
 drill-down records that load *lazily*, one city at a time, so the initial page transfer stays small):**
 - `summary.json` — hierarchy lists, per-type totals, transaction period, CPI table, field completeness,
   Moran's I, hedonic terms, disclosure note.
-- `regionAggregates` / `cityAggregates` / `districtAggregates.geojson` — geometry + per-type
-  {count, median unit price, median total, median ping} for the map.
-- `cityRecords_<code>.json` — trimmed per-record rows (sampled ≤ 4000/city) for client-side drill-down.
+- `cityAggregates` / `districtAggregates.geojson` — geometry + per-type
+  {count, median unit price, median total, median ping} for the map (city + district; the region layer
+  was removed from the app).
+- `cityRecords_<code>.json` — trimmed per-record rows (sampled ≤ 2000/city) for client-side drill-down.
 - `monthlyMarketSeries.json` — per city/region/national monthly {months, count, medUnitPrice}.
 - **`marketSeriesMonthly.csv`** — tidy long-format series (the students' one-line load):
   `level, key, name, txnType, year, month, ym, count, unitPriceNominal, unitPriceReal2021`. Real =

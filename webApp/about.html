@@ -64,6 +64,34 @@
       also a tagging system — has parking, has a management committee, has an elevator — so you can slice by
       features instead of only by place.</p>
 
+      <h2>What gets thrown away in cleaning (and what doesn't)</h2>
+      <p>A fair question anyone should ask: if the site "cleans up" the data, what did it quietly delete? Here's
+      the whole chain, with the actual counts, because the honest answer is "almost nothing you'd want":</p>
+      <ul>
+        <li><b>Start:</b> 4,825,329 raw sale rows across every quarterly file.</li>
+        <li><b>De-duplicate</b> on the serial number — the same deal shows up in overlapping releases — drops
+        15,053 (0.3%), leaving 4,810,276.</li>
+        <li><b>Drop land-only and parking-only</b> transactions (a bare plot or a lone parking space isn't a
+        home) — that's the one big cut, 1,316,454 rows (27%), leaving <b>3,493,822 housing sales</b>.</li>
+        <li><b>Sanity checks</b> — impossible dates, and unit prices below NT$5,000 or above 3,000,000 per m²
+        that are obvious typos — remove well under 0.5% between them.</li>
+      </ul>
+      <p>So cleaning removes one deliberate slice (land/parking) and a sliver of junk. A city's month-by-month
+      sale volume comes through basically intact.</p>
+      <p><b>Which brings up a confusing thing you might notice.</b> Filter the records table or the map dots
+      down to, say, New Taipei in a single 2025 month and you'll count a handful of transactions — under ten.
+      That looks alarming, like the cleaning nuked the data. It didn't. New Taipei really had
+      <b>2,000–2,900 sales every one of those months</b>. The catch is that the map and the table run off a
+      <b>random sample of at most 2,000 records per city</b> — I cap it so the page stays snappy while you
+      filter. Spread over 170-odd months, that's about ten sampled rows a month. The one view that uses the
+      <b>full</b> dataset is the <b>time-series chart</b> — that's where the true monthly counts live. (The
+      map's price <em>colours</em> are medians of the sample, which is a fine estimate; but any <em>count</em>
+      you see on the map or table is the sample size, not the real total.) Rule of thumb: for volumes, trust
+      the chart, not the number of dots.</p>
+      <p>One more honest wrinkle: the newest months always look thin, because the government discloses deals in
+      batches with a lag. The site treats any month that's clearly still filling in (under half the usual
+      volume) as "not final yet" so it doesn't mislead the trend.</p>
+
       <h2>The map, and the annoying fact that there are no coordinates</h2>
       <p>Here's what the data flatly refuses to give you: latitude and longitude. You get a Chinese address
       and a district name, and that's it. So to put anything on a map I had to bring my own geography. I
@@ -100,11 +128,13 @@
 
       <h2>Stuff I already know is imperfect</h2>
       <ul>
-        <li>It's district-level, not building-level — see the coordinates rant above.</li>
+        <li>Outside the five biggest metros (Taipei, New Taipei, Taichung, Taoyuan, Tainan, which are now
+        geocoded to real street addresses), houses still land on their district's centre point — great for
+        "where are the expensive clusters," useless for "find me this one building."</li>
         <li>School distance is stubbed out in the schema but not actually filled in.</li>
-        <li>It's built from a single data release, so while transaction dates run back to about 2016, most of
-        the volume is recent. Loading more quarters would make the "over time" charts a lot richer, and the
-        pipeline's already set up to take them.</li>
+        <li>The individual dots and the records table are a sample (≤2,000 per city) for page speed — see the
+        cleaning section above — so don't read the number of dots as the transaction count; the colours and
+        the time chart use the full data.</li>
         <li>The raw table will cheerfully show you the outliers, because it's meant to be the honest,
         unfiltered view. The map hides them behind medians; the table doesn't.</li>
       </ul>

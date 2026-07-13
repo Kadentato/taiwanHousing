@@ -830,7 +830,8 @@ function buildMethodsPanel() {
   let html = `<h2>Methods &amp; data quality</h2>`
     + `<p class="muted">Source: Ministry of the Interior — Real Estate Actual Price Registration (實價登錄), open data. All prices are <b>nominal</b> NT$.</p>`;
   html += `<h3>Sampling frame</h3>`
-    + `<p class="muted">Transaction dates span ${s.period.minDate} – ${s.period.maxDate}. The registry discloses deals in periodic batches, so the earliest months hold only a few late-registered sales — read monthly <em>counts</em> as a disclosure sample rather than a census, and rely on the medians rather than raw volumes.</p>`;
+    + `<p class="muted">Transaction dates span ${s.period.minDate} – ${s.period.maxDate}. The registry discloses deals in periodic batches, so the newest months undercount — read monthly <em>counts</em> as a disclosure sample rather than a census, and rely on the medians rather than raw volumes.</p>`
+    + `<p class="muted"><b>The time-series chart is the only view built from the full cleaned dataset</b> — true monthly transaction counts and median prices. The <em>map</em> and <em>records table</em> work off a random <b>sample of ≤ 2,000 records per city</b> (so client-side filters stay instant): the map's price colours are medians of that sample (a solid estimate), but any <em>count</em> there — the "Transaction count" colour, the "Transactions (n)" figure, the number of dots — is the sample size, not the real total. So New Taipei shows only ~10 sampled dots in a 2025 month even though it truly had ~2,000–2,900 sales — those real volumes appear in the time-series, not the dots. See <a href="about.html">About</a> for the full cleaning steps.</p>`;
   html += `<h3>Definitions &amp; handling</h3><ul class="muted">`
     + `<li>All figures are <b>medians</b> (robust to the extreme outliers present); the sidebar shows IQR and a bootstrap 95% CI.</li>`
     + `<li>"Housing" excludes land-only and parking-only transactions.</li>`
