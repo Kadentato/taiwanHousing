@@ -26,6 +26,7 @@ import geopandas as gpd
 import pandas as pd
 
 from . import advancedStats
+from . import districtRecords
 from .inflation import CPI, CPI_BASE_YEAR
 from .valueMappings import HOUSING_TARGETS
 
@@ -197,23 +198,11 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
     with open(os.path.join(outDir, "monthlyMarketSeries.json"), "w", encoding="utf-8") as fh:
         json.dump(series, fh, ensure_ascii=False)
 
-    # ---- per-city record files (all transaction types for drill-down) ----
-    keepCols = ["districtId", "transactionType", "targetType", "saleYear", "saleMonth",
-                "totalPrice", "unitPricePerM2", "livingAreaPing", "bedrooms", "bathrooms",
-                "buildingType", "buildingAgeYears", "hasParking", "parkingType",
-                "hasElevator", "hasManagementOrg", "relatedPartyDeal", "cancelledDeal", "hasAddition"]
-    recordsByCity = houses[houses["targetType"].isin(HOUSING_TARGETS)]
+    # ---- per-district FULL record files (no sampling) — the web map lazy-loads each district's
+    # complete set on drill-in. A geocoder (geocodeDoorplate.py) later overwrites the geocoded
+    # cities' files with real coordinates. ----
+    nD, nR, _ = districtRecords.exportAll(conn, outDir)
     recordsSampled = False
-    for cid, grp in recordsByCity.groupby("cityId"):
-        code = cityMeta[cid].fileCode
-        if len(grp) > MAX_RECORDS_PER_CITY:
-            grp = grp.sample(MAX_RECORDS_PER_CITY, random_state=0)
-            recordsSampled = True
-        # astype(object) first so NaN -> None survives (a float column re-coerces None to NaN).
-        clean = grp[keepCols].astype(object).where(pd.notna(grp[keepCols]), None)
-        recs = clean.to_dict("records")
-        with open(os.path.join(outDir, f"cityRecords_{code}.json"), "w", encoding="utf-8") as fh:
-            json.dump(recs, fh, ensure_ascii=False, allow_nan=False)
 
     # ---- summary / hierarchy / tags ----
     tagCounts = pd.read_sql_query(

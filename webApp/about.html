@@ -78,16 +78,13 @@
       </ul>
       <p>So cleaning removes one deliberate slice (land/parking) and a sliver of junk. A city's month-by-month
       sale volume comes through basically intact.</p>
-      <p><b>Which brings up a confusing thing you might notice.</b> Filter the records table or the map dots
-      down to, say, New Taipei in a single 2025 month and you'll count a handful of transactions — under ten.
-      That looks alarming, like the cleaning nuked the data. It didn't. New Taipei really had
-      <b>2,000–2,900 sales every one of those months</b>. The catch is that the map and the table run off a
-      <b>random sample of at most 2,000 records per city</b> — I cap it so the page stays snappy while you
-      filter. Spread over 170-odd months, that's about ten sampled rows a month. The one view that uses the
-      <b>full</b> dataset is the <b>time-series chart</b> — that's where the true monthly counts live. (The
-      map's price <em>colours</em> are medians of the sample, which is a fine estimate; but any <em>count</em>
-      you see on the map or table is the sample size, not the real total.) Rule of thumb: for volumes, trust
-      the chart, not the number of dots.</p>
+      <p><b>And to be clear about what you're looking at: nothing here is sampled.</b> The map's colours and the
+      "current selection" numbers come from pre-computed full-data medians and counts, so a city's transaction
+      count is the real total, not an estimate. The time chart is the complete monthly series. And when you click
+      into a district, the site fetches that district's <b>entire</b> set of sales — every single one, even the
+      big districts with 100,000+ — and draws them all, then computes the median, spread and confidence interval
+      from the lot. It stays fast because it only ever loads the one district you asked for, compressed, on
+      demand — not the whole country up front.</p>
       <p>One more honest wrinkle: the newest months always look thin, because the government discloses deals in
       batches with a lag. The site treats any month that's clearly still filling in (under half the usual
       volume) as "not final yet" so it doesn't mislead the trend.</p>
@@ -132,8 +129,8 @@
         geocoded to real street addresses), houses still land on their district's centre point — great for
         "where are the expensive clusters," useless for "find me this one building."</li>
         <li>School distance is stubbed out in the schema but not actually filled in.</li>
-        <li>The individual dots and the records table are a sample (≤2,000 per city) for page speed — see the
-        cleaning section above — so don't read the number of dots as the transaction count; the colours and
+        <li>Big districts (100k+ sales) draw every dot on one canvas, so the very first click into one can take a
+        few seconds to fetch and render; after that it's instant. Colours and
         the time chart use the full data.</li>
         <li>The raw table will cheerfully show you the outliers, because it's meant to be the honest,
         unfiltered view. The map hides them behind medians; the table doesn't.</li>

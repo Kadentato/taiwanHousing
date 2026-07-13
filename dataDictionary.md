@@ -116,16 +116,14 @@ for **sales** over the full history (101S3–115S2 / 2012 Q3 – 2026 Q2).
 So the cleaning removes **one big, deliberate slice** (land/parking, 27%) and then <0.5% of genuine
 data-quality junk. A city's monthly sale volume is essentially untouched.
 
-**Why the map/table can *look* like "New Taipei had <10 sales in a 2025 month".** Only one view is built
-from the full data:
-- The **time-series chart** (`monthlyMarketSeries.json`) uses **all** cleaned housing sales — true monthly
-  counts and medians. New Taipei genuinely has **~2,000–2,900 sales every month** through 2025.
-- The **map** and **records table** work off a random **≤ 2,000 records per city** (`MAX_RECORDS_PER_CITY`),
-  so client-side filters (tags, year, deal-quality) stay instant. The map's **price colours** are medians of
-  that sample (robust — a good estimate of the true median), but any **count** shown there — the "Transaction
-  count" colour metric, the "Transactions (n)" figure, the number of dots — is the **sample size** (capped at
-  2,000/city), not the real total. Spread over 170 months that's ~10 dots/month. **That is the display sample,
-  not the cleaned dataset** — for real volumes read the time-series chart, not the dots.
+**Nothing is sampled — the whole site is the full cleaned dataset.**
+- **Choropleth colours + "Current selection" stats** read the precomputed per-area full-data medians and
+  counts (`cityAggregates`/`districtAggregates`). Counts are the real totals (e.g. Taipei 285,375, not a sample).
+- **Time-series chart** uses `monthlyMarketSeries.json` — true monthly counts and medians. New Taipei genuinely
+  has **~2,000–2,900 sales every month** through 2025.
+- **Individual dots + records table** load a district's **entire** record set on drill-in (per-district gzipped
+  files, up to 100k+), decompressed in-browser — so the dots, table, median, IQR and 95% CI are computed from
+  every transaction. Only the district you click is fetched, so the initial page stays light.
 
 **Not dropped, only flagged** (so you can include or exclude them): related-party deals 200,464, cancelled
 deals 80, deals with an out-of-registry addition 360,086. The predictor trains on **arm's-length deals only**
@@ -148,7 +146,8 @@ drill-down records that load *lazily*, one city at a time, so the initial page t
 - `cityAggregates` / `districtAggregates.geojson` — geometry + per-type
   {count, median unit price, median total, median ping} for the map (city + district; the region layer
   was removed from the app).
-- `cityRecords_<code>.json` — trimmed per-record rows (sampled ≤ 2000/city) for client-side drill-down.
+- `districtRecords/<districtId>.json.gz` — every district's **complete** sale records, compact positional
+  rows + gzipped, fetched lazily on drill-in (no sampling). `lat`/`lon` present for geocoded metros.
 - `monthlyMarketSeries.json` — per city/region/national monthly {months, count, medUnitPrice}.
 - **`marketSeriesMonthly.csv`** — tidy long-format series (the students' one-line load):
   `level, key, name, txnType, year, month, ym, count, unitPriceNominal, unitPriceReal2021`. Real =

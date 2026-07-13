@@ -25,7 +25,8 @@ from shapely.geometry import Point
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from dataPipeline.webDataExporter import HOUSING_TARGETS, MAX_RECORDS_PER_CITY  # noqa: E402
+from dataPipeline.webDataExporter import HOUSING_TARGETS  # noqa: E402
+from dataPipeline import districtRecords as dr  # noqa: E402
 
 DB = os.path.join(HERE, "database", "taiwanHousing.sqlite")
 CACHE = os.path.join(HERE, "geoReference", "doorplate")
@@ -210,16 +211,15 @@ def main(argv):
         h["lat"] = [x[0] for x in g]
         h["lon"] = [x[1] for x in g]
         placedAll = h["lat"].notna().mean()
-        samp = h.sample(min(MAX_RECORDS_PER_CITY, len(h)), random_state=0).reset_index(drop=True)
-        recs = json.loads(samp[KEEP].to_json(orient="records"))
-        for rec, la, lo in zip(recs, samp["lat"].tolist(), samp["lon"].tolist()):
-            rec["lat"] = round(float(la), 6) if pd.notna(la) else None
-            rec["lon"] = round(float(lo), 6) if pd.notna(lo) else None
-        placed = sum(1 for r in recs if r["lat"] is not None)
-        json.dump(recs, open(os.path.join(DATAFILES, f"cityRecords_{code}.json"), "w", encoding="utf-8"),
-                  ensure_ascii=False)
-        print(f"[{code}] {len(h):,} sales, {placedAll*100:.0f}% geocodable; "
-              f"wrote {len(recs)} records ({placed/len(recs)*100:.0f}% with real coords)")
+        # Overwrite this city's per-district record files with real coordinates (the exporter
+        # wrote coordless versions). Full data — no sampling.
+        outDir = os.path.join(DATAFILES, "districtRecords")
+        nDist = 0
+        for did, grp in h.groupby("districtId"):
+            dr.writeOne(os.path.join(outDir, f"{int(did)}.json.gz"), grp)
+            nDist += 1
+        print(f"[{code}] {len(h):,} sales, {placedAll * 100:.0f}% geocoded; "
+              f"rewrote {nDist} district files with real coordinates")
     print("Done. Bump DATA_V in appMain.js so browsers refetch.")
     return 0
 

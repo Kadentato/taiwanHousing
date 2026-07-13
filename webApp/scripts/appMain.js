@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=18";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=19";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
 // semi-transparent polygon fills with hairline anti-aliased seams ("white cracks"). Render the
@@ -59,7 +59,8 @@ const TYPE_INFO = {
 
 const store = {
   summary: null,
-  records: [],
+  records: [],           // the CURRENTLY drilled district's full records (else empty)
+  series: null,          // monthlyMarketSeries.json — full-data time series (national + per city)
   geom: { city: new Map(), district: new Map() },
   cityByCode: new Map(),
   districtById: new Map(),
@@ -79,14 +80,21 @@ function quantile(arr, p) {
   return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (idx - lo);
 }
 
-// 95% bootstrap CI for the median (used for the current selection only — cheap).
+// 95% CI for the median. A district can hold 100k+ records, so for large n use the analytic
+// order-statistic interval (one sort) — an 800× bootstrap resample of 100k points freezes the tab.
 function bootstrapMedianCI(values, iters = 800) {
   const v = values.filter((x) => x != null);
-  if (v.length < 8) return null;
+  const n = v.length;
+  if (n < 8) return null;
+  if (n > 1000) {
+    const s = v.slice().sort((a, b) => a - b);
+    const d = 1.959964 * Math.sqrt(n) / 2;                 // ±1.96·√n/2 around the middle rank
+    return [s[Math.max(0, Math.floor(n / 2 - d))], s[Math.min(n - 1, Math.ceil(n / 2 + d))]];
+  }
   const meds = [];
   for (let b = 0; b < iters; b++) {
     const s = [];
-    for (let i = 0; i < v.length; i++) s.push(v[(Math.random() * v.length) | 0]);
+    for (let i = 0; i < n; i++) s.push(v[(Math.random() * n) | 0]);
     meds.push(quantile(s, 0.5));
   }
   return [quantile(meds, 0.025), quantile(meds, 0.975)];
@@ -110,6 +118,47 @@ const METRIC = {
 for (const m of Object.values(METRIC)) {
   m.values = (rs) => rs.map(m.val).filter((v) => v != null);
   m.pick = (rs) => (m === METRIC.count ? rs.length : median(m.values(rs)));
+}
+
+// Choropleth colours + feature stats read from the precomputed FULL-DATA aggregates
+// (cityAggregates / districtAggregates), not from records — so they're accurate, not a sample.
+const AGG_FIELD = { count: "Count", unit: "MedUnitPrice", total: "MedTotalPrice", ping: "MedPing" };
+const aggCount = (feature) => feature.properties[state.type + "Count"] || 0;
+function aggMetric(feature, metricKey) {
+  const v = feature.properties[state.type + AGG_FIELD[metricKey]];
+  if (v == null) return null;
+  return metricKey === "ping" ? v * M2_PER_PING : v;   // aggregate size is in 坪; UI shows m²
+}
+
+// Individual transactions load lazily: only when a district is drilled into do we fetch its
+// full record set (compact + gzipped), decompress in-browser, and decode the positional rows.
+const districtCache = new Map();
+async function loadDistrictRecords(districtId) {
+  const id = Number(districtId);
+  if (districtCache.has(id)) return districtCache.get(id);
+  const cityCode = store.geom.district.get(id)?.properties.cityCode || null;
+  let recs = [];
+  try {
+    const resp = await fetch(`${DATA}districtRecords/${id}.json.gz${DATA_V}`);
+    if (resp.ok) {
+      const stream = new Blob([await resp.arrayBuffer()]).stream().pipeThrough(new DecompressionStream("gzip"));
+      recs = decodeDistrictPayload(JSON.parse(await new Response(stream).text()), id, cityCode);
+    }
+  } catch (e) { console.error("district record load failed", id, e); }
+  districtCache.set(id, recs);
+  return recs;
+}
+function decodeDistrictPayload(payload, districtId, cityCode) {
+  const { cols, dict, rows } = payload;
+  return rows.map((row) => {
+    const r = { districtId, cityCode, transactionType: "sale" };
+    for (let i = 0; i < cols.length; i++) {
+      const c = cols[i]; let v = row[i];
+      if (dict && dict[c] && v != null) v = dict[c][v];
+      r[c] = v;
+    }
+    return r;
+  });
 }
 
 // Tag dimension + predicate (OR within a dimension, AND across dimensions).
@@ -227,13 +276,14 @@ const districtLabelOf = (id) => {
 const LISA_COLORS = { HH: "#d7191c", LL: "#2c7bb6", HL: "#fdae61", LH: "#abd9e9", ns: "#e5e7eb" };
 const _globalBins = {};
 
-// Fixed colour bins: quantiles of the per-group medians over ALL of this type
-// (ignores scope/tags/time) so a district's colour is comparable across views.
-function globalBins(metric) {
-  const key = [metric.short, state.type, state.level].join("|");
+// Fixed colour bins: quantiles of every feature's aggregate value at this level (ignores
+// scope) so a district's colour is comparable across views.
+function globalBins(metricKey) {
+  const lvl = state.level === "houses" ? "district" : state.level;
+  const key = [metricKey, state.type, lvl].join("|");
   if (!_globalBins[key]) {
-    const g = groupBy(store.records.filter((r) => r.transactionType === state.type), levelKeyFn());
-    _globalBins[key] = quantileBins([...g.values()].map((rs) => metric.pick(rs)).filter((v) => v != null));
+    _globalBins[key] = quantileBins(
+      [...store.geom[lvl].values()].map((f) => aggMetric(f, metricKey)).filter((v) => v != null));
   }
   return _globalBins[key];
 }
@@ -242,29 +292,27 @@ function renderMap() {
   if (dataLayer) { dataLayer.remove(); dataLayer = null; }
   if (state.level === "houses") { renderHouses(); return; }
 
-  const grouped = groupBy(filteredRecords(), levelKeyFn());
   const metric = METRIC[state.metric];
   const lisaMode = state.colorMode === "lisa" && state.level === "district";
-  const enough = (rs) => rs.length >= state.minN;
+  const enough = (f) => aggCount(f) >= state.minN;                // small-n greyed out
+  const feats = featuresForLevel();
 
   const bins = lisaMode ? []
-    : (state.fixedScale ? globalBins(metric)
-       : quantileBins([...grouped.values()].filter(enough).map((rs) => metric.pick(rs))));
+    : (state.fixedScale ? globalBins(state.metric)
+       : quantileBins(feats.filter(enough).map((f) => aggMetric(f, state.metric)).filter((v) => v != null)));
 
   const fillFor = (feature) => {
-    const rs = grouped.get(featureKey(feature)) || [];
-    if (!enough(rs)) return NO_DATA;                       // small-n greyed out
+    if (!enough(feature)) return NO_DATA;
     if (lisaMode) return LISA_COLORS[feature.properties.lisa] || NO_DATA;
-    return colorFor(metric.pick(rs), bins);
+    const v = aggMetric(feature, state.metric);
+    return v == null ? NO_DATA : colorFor(v, bins);
   };
 
-  const feats = featuresForLevel();
   const fc = { type: "FeatureCollection", features: feats };
 
   const onEach = (feature, layer) => {
-    const rs = grouped.get(featureKey(feature)) || [];
-    layer.bindPopup(popupHtml(featureName(feature), rs, feature));
-    if (enough(rs)) layer.on("click", () => drillInto(feature));
+    layer.bindPopup(popupHtml(featureName(feature), feature));
+    if (enough(feature)) layer.on("click", () => drillInto(feature));
     const label = featureLabel(feature);
     if (label) {
       if (state.level === "district") layer.bindTooltip(label, { direction: "top", className: "mapLabel" });
@@ -273,10 +321,10 @@ function renderMap() {
   };
 
   if (state.level === "district") {
-    const maxCount = Math.max(1, ...[...grouped.values()].map((rs) => rs.length));
+    const maxCount = Math.max(1, ...feats.map(aggCount));
     dataLayer = L.geoJSON(fc, {
       pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
-        radius: bubbleRadius((grouped.get(featureKey(feature)) || []).length, maxCount),
+        radius: bubbleRadius(aggCount(feature), maxCount),
         fillColor: fillFor(feature), color: "#334155", weight: 0.8, fillOpacity: 0.85,
       }),
       onEachFeature: onEach,
@@ -311,10 +359,52 @@ function updateLisaLegend() {
 }
 
 // --- individual house points (level "houses") --------------------------------
-// The LVR open data has no per-house coordinates, so each transaction is drawn as
-// a separate point deterministically jittered within its district and coloured by
-// the chosen metric — so you can see the spread of individual homes, and clicking
-// one shows its details. Positions are illustrative, not exact addresses.
+// One canvas for ALL of a district's points — a district can hold 100k+ sales, which would
+// freeze the map as individual Leaflet markers. We draw every point onto a single overlay
+// canvas (culling to the viewport) and click-test the nearest point for its tooltip.
+const PointCanvas = L.Layer.extend({
+  initialize(pts, radius) { this._pts = pts; this._r = radius; },
+  onAdd(map) {
+    this._map = map;
+    const c = this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-hide");
+    c.style.position = "absolute";
+    map.getPane("overlayPane").appendChild(c);
+    map.on("moveend viewreset resize zoomend", this._draw, this);
+    map.on("click", this._onClick, this);
+    this._draw();
+  },
+  onRemove(map) {
+    L.DomUtil.remove(this._canvas);
+    map.off("moveend viewreset resize zoomend", this._draw, this);
+    map.off("click", this._onClick, this);
+  },
+  _draw() {
+    const map = this._map, size = map.getSize();
+    L.DomUtil.setPosition(this._canvas, map.containerPointToLayerPoint([0, 0]));
+    this._canvas.width = size.x; this._canvas.height = size.y;
+    const ctx = this._canvas.getContext("2d"), b = map.getBounds(), r = this._r;
+    for (const p of this._pts) {
+      if (p.lat < b.getSouth() || p.lat > b.getNorth() || p.lon < b.getWest() || p.lon > b.getEast()) continue;
+      const pt = map.latLngToContainerPoint([p.lat, p.lon]);
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, 6.2832);
+      ctx.fillStyle = p.color; ctx.fill();
+      ctx.lineWidth = 0.4; ctx.strokeStyle = "rgba(30,41,59,0.5)"; ctx.stroke();
+    }
+  },
+  _onClick(e) {
+    let best = null, bestD = 100;                 // within ~10px
+    for (const p of this._pts) {
+      const pt = this._map.latLngToContainerPoint([p.lat, p.lon]);
+      const d = (pt.x - e.containerPoint.x) ** 2 + (pt.y - e.containerPoint.y) ** 2;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    if (best) L.popup({ offset: [0, -4], className: "houseTip" })
+      .setLatLng([best.lat, best.lon]).setContent(housePopup(best.rec)).openOn(this._map);
+  },
+});
+
+// Each transaction is a dot — at its real 門牌 address where geocoded, otherwise deterministically
+// jittered within the district — coloured by the chosen metric; click one for its details.
 function renderHouses() {
   const feat = store.geom.district.get(Number(state.scopeDistrict));
   const rs = filteredRecords();
@@ -325,27 +415,24 @@ function renderHouses() {
   const R = 0.014;                                   // ~1.4 km jitter radius, in degrees
   const cosLat = Math.cos(lat * Math.PI / 180) || 1;
 
+  const radius = rs.length > 20000 ? 2.5 : rs.length > 5000 ? 3.2 : 4;
   let realN = 0;
-  const markers = rs.map((r, i) => {
+  const pts = rs.map((r, i) => {
     const v = metric.val(r);
-    // Use the real geocoded coordinate (門牌 address point) when we have it; otherwise
-    // fall back to a deterministic, evenly-spread jitter within the district.
-    let pos;
+    // Real geocoded coordinate (門牌 address point) where we have it; else a deterministic jitter.
+    let plat, plon;
     if (r.lat != null && r.lon != null) {
-      pos = [r.lat, r.lon]; realN++;
+      plat = r.lat; plon = r.lon; realN++;
     } else {
       const angle = 2 * Math.PI * ((i * 0.6180339887) % 1);
       const rad = R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
-      pos = [lat + rad * Math.sin(angle), lon + rad * Math.cos(angle) / cosLat];
+      plat = lat + rad * Math.sin(angle); plon = lon + rad * Math.cos(angle) / cosLat;
     }
-    return L.circleMarker(pos, {
-      radius: 4.5, fillColor: v == null ? NO_DATA : colorFor(v, bins),
-      color: "#1e293b", weight: 0.5, fillOpacity: 0.82,
-    }).bindTooltip(housePopup(r), { direction: "top", offset: [0, -3], opacity: 1, className: "houseTip" });
+    return { lat: plat, lon: plon, color: v == null ? NO_DATA : colorFor(v, bins), rec: r };
   });
-  dataLayer = L.featureGroup(markers).addTo(map);
+  dataLayer = new PointCanvas(pts, radius).addTo(map);
   updateLegend(bins, metric,
-    `${rs.length.toLocaleString()} individual ${state.type} homes · each dot is one sale, `
+    `${rs.length.toLocaleString()} individual ${state.type} homes · click a dot for details, `
     + `coloured by ${metric.short} · `
     + (realN
         ? `${Math.round(realN / rs.length * 100)}% placed at their real address (門牌 geocoded), the rest jittered`
@@ -367,16 +454,14 @@ function housePopup(r) {
 
 const LISA_LABEL = { HH: "High–High", LL: "Low–Low", HL: "High–Low", LH: "Low–High" };
 
-function popupHtml(name, rs, feature) {
+function popupHtml(name, feature) {
   const row = (label, val) => `<div class="popupStat"><span>${label}</span><b>${val}</b></div>`;
-  if (!rs.length) return `<b>${name}</b><div class="popupStat"><span>No ${state.type} records</span></div>`;
-  const uVals = METRIC.unit.values(rs);
-  const u = median(uVals), q1 = quantile(uVals, 0.25), q3 = quantile(uVals, 0.75);
-  const t = METRIC.total.pick(rs), p = METRIC.ping.pick(rs);
-  let html = `<b>${name}</b>` + row("Transactions (n)", rs.length.toLocaleString());
-  if (rs.length < state.minN) html += `<div class="popupStat"><span style="color:#dc2626">below min n (${state.minN})</span></div>`;
+  const n = aggCount(feature);
+  if (!n) return `<b>${name}</b><div class="popupStat"><span>No ${state.type} records</span></div>`;
+  const u = aggMetric(feature, "unit"), t = aggMetric(feature, "total"), p = aggMetric(feature, "ping");
+  let html = `<b>${name}</b>` + row("Transactions (n)", n.toLocaleString());
+  if (n < state.minN) html += `<div class="popupStat"><span style="color:#dc2626">below min n (${state.minN})</span></div>`;
   html += (u != null ? row("Median unit price", METRIC.unit.fmt(u)) : "")
-    + (q1 != null ? row("IQR", METRIC.unit.fmt(q1) + " – " + METRIC.unit.fmt(q3)) : "")
     + (t != null ? row("Median total", METRIC.total.fmt(t)) : "")
     + (p != null ? row("Median size", METRIC.ping.fmt(p)) : "");
   const lisa = feature && feature.properties && feature.properties.lisa;
@@ -410,7 +495,7 @@ function popView() {
   map.setView(prev.center, prev.zoom, { animate: true });
 }
 
-function drillInto(feature) {
+async function drillInto(feature) {
   pushView();
   if (state.level === "city") {
     state.scopeCity = feature.properties.cityCode;
@@ -420,10 +505,15 @@ function drillInto(feature) {
     return;
   }
   if (state.level === "district") {
-    state.scopeDistrict = String(feature.properties.districtId);
+    const did = Number(feature.properties.districtId);
+    state.scopeDistrict = String(did);
+    state.scopeCity = feature.properties.cityCode;
     state.level = "houses";
-    syncControls(); renderAll();
-    const c = store.geom.district.get(Number(state.scopeDistrict));
+    syncControls();
+    updateLegend([], METRIC[state.metric], "Loading transactions…");
+    store.records = await loadDistrictRecords(did);   // fetch this district's full records
+    renderAll();
+    const c = store.geom.district.get(did);
     if (c) map.setView([c.geometry.coordinates[1], c.geometry.coordinates[0]], 13);
     return;
   }
@@ -467,18 +557,17 @@ function renderChart() {
 }
 
 function renderTimeChart() {
-  document.getElementById("chartTitle").textContent = "Transactions disclosed this release, by transaction date";
+  // Full-data monthly series (true counts + medians), from monthlyMarketSeries.json — NOT records.
+  const scope = state.scopeCity ? store.series.cities[state.scopeCity] : store.series.national;
+  const ser = (scope && scope[state.type]) || { months: [], count: [], medUnitPrice: [] };
+  document.getElementById("chartTitle").textContent =
+    (state.scopeCity ? scopeLabel() : "All Taiwan") + " — monthly sales & median price";
   document.getElementById("chartHint").textContent =
-    `full history (ignores the year filter) · pale bars: n < ${THIN_MONTH_N} (noisy)`;
-  // The chart shows the whole history even though the map/stats default to a recent window.
-  const byMonth = groupBy(
-    filteredRecords({ ignoreYear: true }).filter((r) => r.saleYear && r.saleMonth),
-    (r) => `${r.saleYear}-${String(r.saleMonth).padStart(2, "0")}`
-  );
-  const months = [...byMonth.keys()].sort();
-  const counts = months.map((m) => byMonth.get(m).length);
-  // Median only where n is adequate; thin months are shaded pale so the noisy tail doesn't read as a trend.
-  const medUnit = months.map((m) => byMonth.get(m).length >= THIN_MONTH_N ? METRIC.unit.pick(byMonth.get(m)) : null);
+    `full history · pale bars: n < ${THIN_MONTH_N} (noisy or still-disclosing)`;
+  const months = ser.months;
+  const counts = ser.count;
+  // Median only where n is adequate; thin months shaded pale so the noisy tail doesn't read as a trend.
+  const medUnit = ser.medUnitPrice.map((v, i) => (counts[i] >= THIN_MONTH_N ? v : null));
   const barColors = counts.map((n) => n >= THIN_MONTH_N ? "#93c5fd" : "#e2e8f0");
 
   chart = new Chart(document.getElementById("timeChart"), {
@@ -560,21 +649,38 @@ function scopeLabel() {
 }
 
 function renderStats() {
-  const rs = filteredRecords();
   const row = (l, v) => `<div class="statRow"><span>${l}</span><b>${v}</b></div>`;
-  const uVals = METRIC.unit.values(rs);
-  const u = median(uVals), q1 = quantile(uVals, 0.25), q3 = quantile(uVals, 0.75);
-  const ci = bootstrapMedianCI(uVals);
-  const t = METRIC.total.pick(rs), p = METRIC.ping.pick(rs);
-  let html = row("Scope", scopeLabel())
-    + row("Type", state.type)
-    + (state.yearFrom || state.yearTo ? row("Years", (state.yearFrom || "…") + "–" + (state.yearTo || "latest")) : "")
-    + row("Transactions (n)", rs.length.toLocaleString())
-    + row("Median unit price", u != null ? METRIC.unit.fmt(u) : "—");
-  if (q1 != null && q3 != null) html += row("IQR (Q1–Q3)", METRIC.unit.fmt(q1) + " – " + METRIC.unit.fmt(q3));
-  if (ci) html += row("Median 95% CI", METRIC.unit.fmt(ci[0]) + " – " + METRIC.unit.fmt(ci[1]));
-  html += row("Median total price", t != null ? METRIC.total.fmt(t) : "—")
-    + row("Median living size", p != null ? METRIC.ping.fmt(p) : "—");
+  const note = (t) => `<p style="font-size:11px;color:#64748b;line-height:1.45;margin:8px 0 0">${t}</p>`;
+  const fmt = (v, m) => (v != null ? m.fmt(v) : "—");
+  // Drilled into a district → its full records are loaded → rich stats (median, IQR, bootstrap CI).
+  if (state.scopeDistrict && store.records.length) {
+    const rs = filteredRecords();
+    const uVals = METRIC.unit.values(rs);
+    const q1 = quantile(uVals, 0.25), q3 = quantile(uVals, 0.75), ci = bootstrapMedianCI(uVals);
+    let html = row("Scope", scopeLabel()) + row("Type", state.type)
+      + (state.yearFrom || state.yearTo ? row("Years", (state.yearFrom || "…") + "–" + (state.yearTo || "latest")) : "")
+      + row("Transactions (n)", rs.length.toLocaleString())
+      + row("Median unit price", fmt(median(uVals), METRIC.unit));
+    if (q1 != null && q3 != null) html += row("IQR (Q1–Q3)", METRIC.unit.fmt(q1) + " – " + METRIC.unit.fmt(q3));
+    if (ci) html += row("Median 95% CI", METRIC.unit.fmt(ci[0]) + " – " + METRIC.unit.fmt(ci[1]));
+    html += row("Median total price", fmt(METRIC.total.pick(rs), METRIC.total))
+      + row("Median living size", fmt(METRIC.ping.pick(rs), METRIC.ping));
+    document.getElementById("statsBody").innerHTML = html;
+    return;
+  }
+  // Otherwise read the scope's precomputed FULL-DATA aggregate (accurate, all-time).
+  const feat = state.scopeCity ? store.geom.city.get(state.scopeCity) : null;
+  let html = row("Scope", scopeLabel()) + row("Type", state.type);
+  if (feat) {
+    html += row("Transactions (n)", aggCount(feat).toLocaleString())
+      + row("Median unit price", fmt(aggMetric(feat, "unit"), METRIC.unit))
+      + row("Median total price", fmt(aggMetric(feat, "total"), METRIC.total))
+      + row("Median living size", fmt(aggMetric(feat, "ping"), METRIC.ping));
+  } else {
+    html += row("Transactions (n)", (store.summary.totals[state.type] || 0).toLocaleString())
+      + note("Nationwide — pick a city or district for a median (the national mix spans very different markets).");
+  }
+  html += note("Click a district on the map for its individual transactions, IQR and 95% CI.");
   document.getElementById("statsBody").innerHTML = html;
 }
 
@@ -620,6 +726,15 @@ function sortedRecords() {
 }
 
 function renderTable() {
+  // Individual records load per district, so the table lives inside a drilled district.
+  if (!(state.scopeDistrict && store.records.length)) {
+    document.querySelector("#dataTable thead").innerHTML = "";
+    document.querySelector("#dataTable tbody").innerHTML =
+      `<tr><td colspan="15" style="padding:44px 16px;text-align:center;color:#64748b;font-size:13px">Click a district on the map to load its individual transactions here — the full set, not a sample.</td></tr>`;
+    document.getElementById("tablePager").innerHTML = "";
+    document.getElementById("viewBarRight").innerHTML = "";
+    return;
+  }
   const rows = sortedRecords();
   const maxPage = Math.max(0, Math.ceil(rows.length / PAGE_SIZE) - 1);
   if (state.page > maxPage) state.page = maxPage;
@@ -752,7 +867,7 @@ function buildTagChips() {
 
 // Manual navigation (toggles/dropdowns) is a fresh start: drop the drill stack
 // and the individual-house scope, then refit the map to the chosen scope.
-function clearDrill() { state.scopeDistrict = ""; viewStack.length = 0; }
+function clearDrill() { state.scopeDistrict = ""; store.records = []; viewStack.length = 0; }
 
 function wireControls() {
   document.getElementById("levelToggle").onclick = (e) => {
@@ -812,7 +927,8 @@ function wireStatControls() {
 }
 
 function populateYearControls() {
-  const years = [...new Set(store.records.map((r) => r.saleYear).filter(Boolean))].sort((a, b) => a - b);
+  const months = store.series?.national?.[state.type]?.months || [];
+  const years = [...new Set(months.map((m) => +m.slice(0, 4)))].sort((a, b) => a - b);
   // Default the map/stats to the FULL history (2012→latest). Note: the headline unit-price
   // median is then a nominal figure pooled across ~a decade, so it reads below today's level;
   // narrow the year filter (or read the time chart) for current prices.
@@ -829,9 +945,9 @@ function buildMethodsPanel() {
   const present = (m) => (100 * (m.n - m.missing) / m.n).toFixed(1) + "%";
   let html = `<h2>Methods &amp; data quality</h2>`
     + `<p class="muted">Source: Ministry of the Interior — Real Estate Actual Price Registration (實價登錄), open data. All prices are <b>nominal</b> NT$.</p>`;
-  html += `<h3>Sampling frame</h3>`
-    + `<p class="muted">Transaction dates span ${s.period.minDate} – ${s.period.maxDate}. The registry discloses deals in periodic batches, so the newest months undercount — read monthly <em>counts</em> as a disclosure sample rather than a census, and rely on the medians rather than raw volumes.</p>`
-    + `<p class="muted"><b>The time-series chart is the only view built from the full cleaned dataset</b> — true monthly transaction counts and median prices. The <em>map</em> and <em>records table</em> work off a random <b>sample of ≤ 2,000 records per city</b> (so client-side filters stay instant): the map's price colours are medians of that sample (a solid estimate), but any <em>count</em> there — the "Transaction count" colour, the "Transactions (n)" figure, the number of dots — is the sample size, not the real total. So New Taipei shows only ~10 sampled dots in a 2025 month even though it truly had ~2,000–2,900 sales — those real volumes appear in the time-series, not the dots. See <a href="about.html">About</a> for the full cleaning steps.</p>`;
+  html += `<h3>Full data, nothing sampled</h3>`
+    + `<p class="muted">Transaction dates span ${s.period.minDate} – ${s.period.maxDate}. The registry discloses deals in periodic batches, so the newest months undercount — read the noisiest recent months as still filling in.</p>`
+    + `<p class="muted"><b>Every figure here is the full cleaned dataset — no per-city sampling.</b> Choropleth colours and the "Current selection" stats read precomputed full-data medians and counts; the time chart uses the complete monthly series; and clicking a district loads its <em>entire</em> set of individual sales on demand (100k+ where needed), so the dots, the records table, the median, IQR and 95% CI are all computed from every transaction. See <a href="about.html">About</a> for the cleaning steps.</p>`;
   html += `<h3>Definitions &amp; handling</h3><ul class="muted">`
     + `<li>All figures are <b>medians</b> (robust to the extreme outliers present); the sidebar shows IQR and a bootstrap 95% CI.</li>`
     + `<li>"Housing" excludes land-only and parking-only transactions.</li>`
@@ -898,22 +1014,16 @@ async function loadData() {
   summary.cities.forEach((c) => store.cityByCode.set(c.cityCode, c));
   summary.districts.forEach((d) => store.districtById.set(d.districtId, d));
 
-  const [cg, dg] = await Promise.all([
+  const [cg, dg, series] = await Promise.all([
     fetch(DATA + "cityAggregates.geojson" + DATA_V).then((r) => r.json()),
     fetch(DATA + "districtAggregates.geojson" + DATA_V).then((r) => r.json()),
+    fetch(DATA + "monthlyMarketSeries.json" + DATA_V).then((r) => r.json()),
   ]);
   indexGeometry(cg, store.geom.city, "cityCode");
   indexGeometry(dg, store.geom.district, "districtId");
-
-  const recordSets = await Promise.all(
-    summary.cities.map((c) =>
-      fetch(DATA + `cityRecords_${c.cityCode}.json` + DATA_V).then((r) => (r.ok ? r.json() : []))));
-  summary.cities.forEach((c, i) => {
-    for (const r of recordSets[i]) {
-      r.cityCode = c.cityCode;
-      store.records.push(r);
-    }
-  });
+  store.series = series;
+  // Individual records are NOT loaded here — each district's full set is fetched lazily
+  // (loadDistrictRecords) only when the user drills into it.
 }
 
 function renderHeader() {
