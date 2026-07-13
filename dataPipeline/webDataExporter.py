@@ -1,9 +1,9 @@
 """Export the database into static files the web app fetches (no backend).
 
 Outputs into ``webApp/dataFiles/``:
-  * districtAggregates.geojson / cityAggregates.geojson / regionAggregates.geojson
+  * districtAggregates.geojson / cityAggregates.geojson
     - geometry + per-transaction-type {count, median unit price, median total
-      price, median ping} for the map.
+      price, median ping} for the map (city + district; no region layer).
   * monthlyMarketSeries.json - month-by-month series at national / region / city
     level for the time charts.
   * cityRecords_<code>.json - trimmed per-record rows for client-side drill-down.
@@ -147,13 +147,11 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
 
     # ---- geometry lookups ----
     cityGeom = {r.cityId: r.geometryWkt for r in cities.itertuples()}
-    regionGeom = {r.regionId: r.geometryWkt for r in regions.itertuples()}
     districtGeom = {r.districtId: r.geometryWkt for r in districts.itertuples()}
     fromWkt = lambda d: {k: gpd.GeoSeries.from_wkt([v]).iloc[0] if v else None for k, v in d.items()}
-    cityGeom, regionGeom, districtGeom = fromWkt(cityGeom), fromWkt(regionGeom), fromWkt(districtGeom)
+    cityGeom, districtGeom = fromWkt(cityGeom), fromWkt(districtGeom)
 
     cityMeta = {r.cityId: r for r in cities.itertuples()}
-    regionMeta = {r.regionId: r for r in regions.itertuples()}
 
     # ---- district aggregates (points) ----
     dStats = _groupProps(housing, "districtId")
@@ -186,15 +184,10 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
                  "regionId": cityMeta[cid].regionId, **props} for cid, props in cStats.items()]
     _writeGeoJson(cityRows, cityGeom, "cityId", os.path.join(outDir, "cityAggregates.geojson"))
 
-    # ---- region aggregates (polygons) ----
-    # houses lack regionId directly; map via city.
+    # region grouping kept only for the monthly series below (the web map is city+district
+    # now — the region layer was removed). Houses lack regionId directly, so derive via city.
     cityToRegion = {r.cityId: r.regionId for r in cities.itertuples()}
     housing = housing.assign(regionId=housing["cityId"].map(cityToRegion))
-    rStats = _groupProps(housing, "regionId")
-    regionRows = [{"regionId": rid, "regionEn": regionMeta[rid].nameEn, **props}
-                  for rid, props in rStats.items()]
-    _writeGeoJson(regionRows, regionGeom, "regionId",
-                  os.path.join(outDir, "regionAggregates.geojson"))
 
     # ---- monthly market series ----
     series = {"national": _monthly(housing),

@@ -17,7 +17,6 @@ const state = {
   type: "sale",
   level: "city",
   metric: "unit",
-  scopeRegion: "",
   scopeCity: "",
   tags: new Set(),
   scopeDistrict: "",    // set when drilled to individual houses
@@ -61,9 +60,8 @@ const TYPE_INFO = {
 const store = {
   summary: null,
   records: [],
-  geom: { region: new Map(), city: new Map(), district: new Map() },
+  geom: { city: new Map(), district: new Map() },
   cityByCode: new Map(),
-  regionById: new Map(),
   districtById: new Map(),
 };
 
@@ -142,7 +140,6 @@ function filteredRecords(opts = {}) {
     if (r.transactionType !== state.type) return false;
     if (state.level === "houses" && state.scopeDistrict && r.districtId !== Number(state.scopeDistrict)) return false;
     if (state.scopeCity && r.cityCode !== state.scopeCity) return false;
-    if (state.scopeRegion && r.regionId !== Number(state.scopeRegion)) return false;
     if (!opts.ignoreYear) {
       if (state.yearFrom && r.saleYear < state.yearFrom) return false;
       if (state.yearTo && r.saleYear > state.yearTo) return false;
@@ -191,7 +188,6 @@ function colorFor(value, bins) {
 const bubbleRadius = (count, maxCount) => 5 + 18 * Math.sqrt(count / Math.max(1, maxCount));
 
 function levelKeyFn() {
-  if (state.level === "region") return (r) => r.regionId;
   if (state.level === "city") return (r) => r.cityCode;
   return (r) => r.districtId;
 }
@@ -199,34 +195,26 @@ function levelKeyFn() {
 function featuresForLevel() {
   const g = store.geom[state.level];
   let feats = [...g.values()];
-  if (state.level === "city") {
-    if (state.scopeRegion) feats = feats.filter((f) => f.properties.regionId === Number(state.scopeRegion));
-  } else if (state.level === "district") {
-    if (state.scopeCity) feats = feats.filter((f) => f.properties.cityCode === state.scopeCity);
-    else if (state.scopeRegion) feats = feats.filter((f) => f.properties.regionId === Number(state.scopeRegion));
-  } else if (state.level === "region") {
-    if (state.scopeRegion) feats = feats.filter((f) => f.properties.regionId === Number(state.scopeRegion));
+  if (state.level === "district" && state.scopeCity) {
+    feats = feats.filter((f) => f.properties.cityCode === state.scopeCity);
   }
   return feats;
 }
 
 function featureKey(feature) {
-  if (state.level === "region") return feature.properties.regionId;
   if (state.level === "city") return feature.properties.cityCode;
   return feature.properties.districtId;
 }
 
 function featureName(feature) {
   const p = feature.properties;
-  if (state.level === "region") return store.regionById.get(p.regionId)?.nameEn || "Region";
   if (state.level === "city") return p.cityEn;
   return (p.cityEn || "") + " · " + (p.districtEn || p.districtZh);
 }
 
-// Short English label for the map (romanised district name, English city/region).
+// Short English label for the map (English city name, romanised district name).
 function featureLabel(feature) {
   const p = feature.properties;
-  if (state.level === "region") return store.regionById.get(p.regionId)?.nameEn || "";
   if (state.level === "city") return p.cityEn || "";
   return p.districtEn || p.districtZh || "";
 }
@@ -297,7 +285,7 @@ function renderMap() {
     dataLayer = L.geoJSON(fc, {
       renderer: polyRenderer,
       // Stroke each polygon in its OWN fill colour (not white): a white border reads as a "crack"
-      // between regions, and the stroke also slightly dilates each polygon to cover antialiasing
+      // between neighbours, and the stroke also slightly dilates each polygon to cover antialiasing
       // seams where neighbours meet. Same idea as edgecolor="face" on the README map.
       style: (f) => { const c = fillFor(f); return { fillColor: c, color: c, weight: 1, fillOpacity: 1 }; },
       onEachFeature: onEach,
@@ -401,13 +389,12 @@ function zoomToBounds(b) { if (b && b.isValid()) map.fitBounds(b, { padding: [30
 
 function fitToScope() {
   if (state.scopeCity) { const f = store.geom.city.get(state.scopeCity); if (f) return zoomToBounds(boundsOfFeature(f)); }
-  if (state.scopeRegion) { const f = store.geom.region.get(Number(state.scopeRegion)); if (f) return zoomToBounds(boundsOfFeature(f)); }
   map.fitBounds(TAIWAN_BOUNDS);
 }
 
 function pushView() {
   viewStack.push({
-    level: state.level, scopeRegion: state.scopeRegion, scopeCity: state.scopeCity,
+    level: state.level, scopeCity: state.scopeCity,
     scopeDistrict: state.scopeDistrict, center: map.getCenter(), zoom: map.getZoom(),
   });
 }
@@ -416,7 +403,7 @@ function pushView() {
 function popView() {
   if (!viewStack.length) { fitToScope(); return; }
   const prev = viewStack.pop();
-  state.level = prev.level; state.scopeRegion = prev.scopeRegion;
+  state.level = prev.level;
   state.scopeCity = prev.scopeCity; state.scopeDistrict = prev.scopeDistrict;
   syncControls();
   renderAll();
@@ -425,15 +412,7 @@ function popView() {
 
 function drillInto(feature) {
   pushView();
-  if (state.level === "region") {
-    state.scopeRegion = String(feature.properties.regionId);
-    state.level = "city";
-    syncControls(); renderAll();
-    zoomToBounds(boundsOfFeature(feature));
-    return;
-  }
   if (state.level === "city") {
-    state.scopeRegion = String(feature.properties.regionId);
     state.scopeCity = feature.properties.cityCode;
     state.level = "district";
     syncControls(); renderAll();
@@ -577,7 +556,6 @@ function scopeLabel() {
     return (c?.nameEn ? c.nameEn + " · " : "") + (districtLabelOf(state.scopeDistrict) || "District");
   }
   if (state.scopeCity) return store.cityByCode.get(state.scopeCity)?.nameEn || "City";
-  if (state.scopeRegion) return store.regionById.get(Number(state.scopeRegion))?.nameEn || "Region";
   return "All Taiwan";
 }
 
@@ -695,7 +673,7 @@ function downloadCsv(rows) {
   const blob = new Blob(["﻿" + header + "\n" + body], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  const scope = (state.scopeCity || (state.scopeRegion ? "region" + state.scopeRegion : "allTaiwan"));
+  const scope = state.scopeCity || "allTaiwan";
   a.href = url;
   a.download = `taiwanHousing_${state.type}_${scope}.csv`;
   a.click();
@@ -727,17 +705,14 @@ function syncControls() {
   document.querySelectorAll("#levelToggle button").forEach((b) =>
     b.classList.toggle("active", b.dataset.level === lvl));
   document.getElementById("metricSelect").value = state.metric;
-  document.getElementById("regionScope").value = state.scopeRegion;
   buildCityScope();
   document.getElementById("cityScope").value = state.scopeCity;
 }
 
 function buildCityScope() {
   const sel = document.getElementById("cityScope");
-  const cities = store.summary.cities.filter(
-    (c) => !state.scopeRegion || c.regionId === Number(state.scopeRegion));
   sel.innerHTML = '<option value="">All cities</option>'
-    + cities.map((c) => `<option value="${c.cityCode}">${c.nameEn}</option>`).join("");
+    + store.summary.cities.map((c) => `<option value="${c.cityCode}">${c.nameEn}</option>`).join("");
 }
 
 function buildTagChips() {
@@ -785,20 +760,14 @@ function wireControls() {
     state.level = e.target.dataset.level; clearDrill(); syncControls(); renderAll(); fitToScope();
   };
   document.getElementById("metricSelect").onchange = (e) => { state.metric = e.target.value; renderAll(); };
-  document.getElementById("regionScope").onchange = (e) => {
-    state.scopeRegion = e.target.value; state.scopeCity = ""; clearDrill();
-    if (state.level === "houses") state.level = "district";
-    syncControls(); renderAll(); fitToScope();
-  };
   document.getElementById("cityScope").onchange = (e) => {
     state.scopeCity = e.target.value;
-    if (state.scopeCity) { const c = store.cityByCode.get(state.scopeCity); if (c) state.scopeRegion = String(c.regionId); }
     clearDrill();
     if (state.level === "houses") state.level = "district";
     syncControls(); renderAll(); fitToScope();
   };
   document.getElementById("resetBtn").onclick = () => {
-    state.scopeRegion = ""; state.scopeCity = ""; state.tags.clear(); clearDrill();
+    state.scopeCity = ""; state.tags.clear(); clearDrill();
     state.excludeFlags.clear(); state.winsorize = false; state.minN = 1;
     state.yearFrom = DEFAULT_YEAR_FROM; state.yearTo = null;
     if (state.level === "houses") state.level = "district";
@@ -918,11 +887,6 @@ function wireTypeTooltips() {
 }
 
 // ------------------------------------------------------------------- init ---
-function buildRegionScope() {
-  document.getElementById("regionScope").innerHTML = '<option value="">All regions</option>'
-    + store.summary.regions.map((r) => `<option value="${r.regionId}">${r.nameEn}</option>`).join("");
-}
-
 function indexGeometry(fc, mapObj, keyProp) {
   for (const f of fc.features) mapObj.set(f.properties[keyProp], f);
 }
@@ -931,15 +895,12 @@ async function loadData() {
   const summary = await (await fetch(DATA + "summary.json" + DATA_V)).json();
   store.summary = summary;
   summary.cities.forEach((c) => store.cityByCode.set(c.cityCode, c));
-  summary.regions.forEach((r) => store.regionById.set(r.regionId, r));
   summary.districts.forEach((d) => store.districtById.set(d.districtId, d));
 
-  const [rg, cg, dg] = await Promise.all([
-    fetch(DATA + "regionAggregates.geojson" + DATA_V).then((r) => r.json()),
+  const [cg, dg] = await Promise.all([
     fetch(DATA + "cityAggregates.geojson" + DATA_V).then((r) => r.json()),
     fetch(DATA + "districtAggregates.geojson" + DATA_V).then((r) => r.json()),
   ]);
-  indexGeometry(rg, store.geom.region, "regionId");
   indexGeometry(cg, store.geom.city, "cityCode");
   indexGeometry(dg, store.geom.district, "districtId");
 
@@ -949,7 +910,6 @@ async function loadData() {
   summary.cities.forEach((c, i) => {
     for (const r of recordSets[i]) {
       r.cityCode = c.cityCode;
-      r.regionId = c.regionId;
       store.records.push(r);
     }
   });
@@ -1007,7 +967,6 @@ async function init() {
   try {
     await loadData();
     renderHeader();
-    buildRegionScope();
     buildTagChips();
     populateYearControls();
     wireControls();

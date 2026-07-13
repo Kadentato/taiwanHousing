@@ -34,7 +34,7 @@ def _round(coords):
 
 
 def main() -> int:
-    for name in ("cityAggregates.geojson", "regionAggregates.geojson"):
+    for name in ("cityAggregates.geojson",):
         path = os.path.join(DATA, name)
         gdf = gpd.read_file(path).set_crs(WGS84, allow_override=True)
         gdf["geometry"] = sealGaps(gdf.geometry)
