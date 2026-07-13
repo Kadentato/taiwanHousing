@@ -24,7 +24,7 @@ SMALL = ["regions", "cities", "districts", "tags"]
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Publish a small sample DB for the browse page.")
-    ap.add_argument("--rows", type=int, default=40000, help="approx. sample of sale-housing rows")
+    ap.add_argument("--rows", type=int, default=20000, help="approx. sample of sale-housing rows")
     args = ap.parse_args()
 
     if not os.path.exists(FULL):
