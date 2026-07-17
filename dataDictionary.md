@@ -146,6 +146,10 @@ drill-down records that load *lazily*, one city at a time, so the initial page t
 - `cityAggregates` / `districtAggregates.geojson` — geometry + per-type
   {count, median unit price, median total, median ping} for the map (city + district; the region layer
   was removed from the app).
+- **Display units:** stored values keep the source units (unit price **per m²**, sizes in ping), but the
+  web UI presents everything in Taiwan's native **ping (坪)** — sizes as ping, and unit price as **NT$/ping**
+  (stored NT$/m² × 3.305785). This is a display-layer conversion only; the data files and the model are
+  unchanged.
 - `districtRecords/<districtId>.json.gz` — every district's **complete** sale records, compact positional
   rows + gzipped, fetched lazily on drill-in (no sampling). `lat`/`lon` present for geocoded metros.
 - `monthlyMarketSeries.json` — per city/region/national monthly {months, count, medUnitPrice}.

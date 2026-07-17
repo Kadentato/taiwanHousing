@@ -35,10 +35,10 @@
       <section class="control">
         <label class="controlLabel" for="metricSelect">Colour metric</label>
         <select id="metricSelect">
-          <option value="unit">Median unit price (NT$/m²)</option>
+          <option value="unit">Median unit price (NT$/ping)</option>
           <option value="total">Median total price (NT$)</option>
           <option value="count">Transaction count</option>
-          <option value="ping">Median living size (m²)</option>
+          <option value="ping">Median living size (ping)</option>
         </select>
       </section>
 
@@ -101,7 +101,7 @@
         <div class="chartPanel" id="chartPanel">
           <div class="chartHeader">
             <h3 id="chartTitle">Market over time</h3>
-            <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/m²)</span>
+            <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/ping)</span>
             <button class="chartCollapse" id="chartCollapse" type="button" title="Hide / show the chart">▾</button>
           </div>
           <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
@@ -126,6 +126,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=32"></script>
+  <script src="scripts/appMain.js?v=33"></script>
 </body>
 </html>

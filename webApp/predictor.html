@@ -59,7 +59,7 @@
         <div class="fieldGrid">
           <div class="field"><label for="pCity">City / county</label><select id="pCity"></select></div>
           <div class="field"><label for="pDistrict">District</label><select id="pDistrict"></select></div>
-          <div class="field"><label for="pSize">Living size (m²)</label><input id="pSize" type="number" min="20" max="660" step="5" value="100" /></div>
+          <div class="field"><label for="pSize">Living size (ping)</label><input id="pSize" type="number" min="6" max="200" step="1" value="30" /></div>
           <div class="field"><label for="pAge">Building age (years)</label><input id="pAge" type="number" min="0" max="80" step="1" value="15" /></div>
           <div class="field" id="floorField"><label for="pFloor">Unit's floor</label><input id="pFloor" type="number" min="1" max="12" step="1" value="4" /></div>
           <div class="field"><label for="pTotalFloors">Total floors in building</label><input id="pTotalFloors" type="number" min="1" max="12" step="1" value="8" /></div>
@@ -78,7 +78,7 @@
             <div class="fieldGrid" style="margin-top:10px">
               <div class="field"><label for="pLiving">Living rooms</label><input id="pLiving" type="number" min="0" max="10" step="1" value="2" /></div>
               <div class="field"><label for="pMaterial">Main material</label><select id="pMaterial"></select></div>
-              <div class="field"><label for="pLandPing">Land share (m²)</label><input id="pLandPing" type="number" min="0" max="660" step="1" value="16" /></div>
+              <div class="field"><label for="pLandPing">Land share (ping)</label><input id="pLandPing" type="number" min="0" max="200" step="1" value="5" /></div>
               <div class="field"><label for="pMainRatio">Main-building ratio (公設)</label><input id="pMainRatio" type="number" min="0.2" max="1" step="0.01" value="0.66" /></div>
             </div>
           </details>
@@ -95,6 +95,6 @@
     </div>
   </main>
 
-  <script src="scripts/predictor.js?v=7"></script>
+  <script src="scripts/predictor.js?v=8"></script>
 </body>
 </html>

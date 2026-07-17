@@ -36,6 +36,7 @@ PARQUET = os.path.join(ROOT, "modeling", "data", "sales.parquet")
 # Real data runs Aug 2012 (2012 Q3) -> mid-2026. Show one frame per quarter, each a trailing
 # 12-month window; start where the first full window closes (2013 Q2) so every frame is a true
 # trailing year, and stop at the last quarter with data (2026 Q2).
+M2_PER_PING = 3.305785                           # prices are per-m²; Taiwan quotes per ping (坪)
 FIRST_QI, LAST_QI = 2013 * 4 + 1, 2026 * 4 + 1   # qi = year*4 + (quarter-1)
 MIN_SALES = 8                                     # a district needs this many sales in the window
 FRAME_MS, HOLD_MS = 190, 1600                     # per-frame duration; last frame lingers
@@ -68,12 +69,12 @@ def main() -> int:
     windows = {}
     for qi in frame_qis:
         w = df[(df.qi <= qi) & (df.qi >= qi - 3)]
-        med = w.groupby("key")["unitPricePerM2"].median()
+        med = w.groupby("key")["unitPricePerM2"].median() * M2_PER_PING   # per-ping for display
         cnt = w.groupby("key")["unitPricePerM2"].size()
         windows[qi] = med[cnt >= MIN_SALES]
     allv = np.concatenate([m.values for m in windows.values()])
     vmin, vmax = float(np.percentile(allv, 5)), float(np.percentile(allv, 95))
-    print(f"{len(frame_qis)} frames, fixed scale {vmin/1000:.0f}k-{vmax/1000:.0f}k NT$/m^2")
+    print(f"{len(frame_qis)} frames, fixed scale {vmin/1000:.0f}k-{vmax/1000:.0f}k NT$/ping")
 
     frames = []
     for qi in frame_qis:
@@ -88,7 +89,7 @@ def main() -> int:
         polys[polys["price"].notna()].plot(
             ax=ax, column="price", cmap="YlOrRd", vmin=vmin, vmax=vmax,
             edgecolor="face", linewidth=0.4, legend=True,
-            legend_kwds={"label": "Median sale price (NT$/m²)", "shrink": 0.42,
+            legend_kwds={"label": "Median sale price (NT$/ping)", "shrink": 0.42,
                          "format": FuncFormatter(lambda x, _: f"{x / 1000:.0f}k")})
         ax.set_xlim(119.3, 122.05)
         ax.set_ylim(21.85, 25.35)

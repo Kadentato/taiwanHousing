@@ -20,6 +20,7 @@ from matplotlib.ticker import FuncFormatter  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 OUT = os.path.join(HERE, "taiwanPriceMap.png")
+M2_PER_PING = 3.305785   # stored medians are per-m²; Taiwan quotes per ping (坪), so ×this to convert
 
 
 def main() -> int:
@@ -32,12 +33,12 @@ def main() -> int:
         s = re.sub(r"\(.*?\)", "", str(s)).replace("臺", "台")
         return re.sub(r"[鄉鎮市區]$", "", s).strip()
 
-    price = {(r.cityCode, norm(r.districtZh)): r.saleMedUnitPrice for r in agg.itertuples()
+    price = {(r.cityCode, norm(r.districtZh)): r.saleMedUnitPrice * M2_PER_PING for r in agg.itertuples()
              if r.saleMedUnitPrice is not None}
     # Provincial cities (Hsinchu City, Chiayi City) are recorded at the city level — a single price
     # row, not per-district — so fall back to that one price for all of their district polygons.
     nRows = Counter(r.cityCode for r in agg.itertuples() if r.saleMedUnitPrice is not None)
-    cityFallback = {r.cityCode: r.saleMedUnitPrice for r in agg.itertuples()
+    cityFallback = {r.cityCode: r.saleMedUnitPrice * M2_PER_PING for r in agg.itertuples()
                     if r.saleMedUnitPrice is not None and nRows[r.cityCode] == 1}
     polys["price"] = [price.get((r.cityCode, norm(r.town)), cityFallback.get(r.cityCode))
                       for r in polys.itertuples()]
@@ -56,7 +57,7 @@ def main() -> int:
     polys[polys["price"].notna()].plot(
         ax=ax, column="price", cmap="YlOrRd", vmin=vmin, vmax=vmax,
         edgecolor="face", linewidth=0.4, legend=True,
-        legend_kwds={"label": "Median sale price (NT$/m²)", "shrink": 0.42,
+        legend_kwds={"label": "Median sale price (NT$/ping)", "shrink": 0.42,
                      "format": FuncFormatter(lambda x, _: f"{x / 1000:.0f}k")})
     # frame the main island + Penghu (crops the far-west Kinmen / far-north Matsu specks)
     ax.set_xlim(119.3, 122.05)

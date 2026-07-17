@@ -5,7 +5,8 @@
 
 const DATA = "dataFiles/";
 const DATA_V = "?v=19";  // bump on rebuild so browsers refetch updated data files
-const M2_PER_PING = 3.305785;   // 1 坪 = 3.305785 m²; sizes are displayed in standard m²
+const M2_PER_PING = 3.305785;   // 1 ping (坪) = 3.305785 m². Sizes shown in ping; the stored
+                                // unit price is per-m², so ×M2_PER_PING converts it to per-ping.
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
 // semi-transparent polygon fills with hairline anti-aliased seams ("white cracks"). Render the
 // choropleth polygons with SVG instead — crisp fills, and there are only a few hundred of them.
@@ -103,17 +104,17 @@ function bootstrapMedianCI(values, iters = 800) {
 // Each metric knows how to read a per-record value, its raw distribution field,
 // and formatting. pick() = median over records. All prices are nominal NT$.
 const METRIC = {
-  unit:  { label: "Median unit price", short: "unit price", unit: "NT$/m²",
-           fmt: (v) => "NT$" + Math.round(v).toLocaleString() + "/m²",
-           val: (r) => (r.unitPricePerM2 == null ? null : r.unitPricePerM2) },
+  unit:  { label: "Median unit price", short: "unit price", unit: "NT$/ping",
+           fmt: (v) => "NT$" + Math.round(v).toLocaleString() + "/ping",
+           val: (r) => (r.unitPricePerM2 == null ? null : r.unitPricePerM2 * M2_PER_PING) },
   total: { label: "Median total price", short: "total price", unit: "NT$",
            fmt: (v) => v >= 1e6 ? "NT$" + (v / 1e6).toFixed(2) + "M" : "NT$" + Math.round(v).toLocaleString(),
            val: (r) => (r.totalPrice == null ? null : r.totalPrice) },
   count: { label: "Transactions", short: "count", unit: "",
            fmt: (v) => v.toLocaleString(), val: () => 1 },
-  ping:  { label: "Median size", short: "size", unit: "m²",
-           fmt: (v) => Math.round(v).toLocaleString() + " m²",
-           val: (r) => (r.livingAreaPing == null ? null : r.livingAreaPing * M2_PER_PING) },
+  ping:  { label: "Median size", short: "size", unit: "ping",
+           fmt: (v) => Math.round(v).toLocaleString() + " ping",
+           val: (r) => (r.livingAreaPing == null ? null : r.livingAreaPing) },
 };
 for (const m of Object.values(METRIC)) {
   m.values = (rs) => rs.map(m.val).filter((v) => v != null);
@@ -127,7 +128,7 @@ const aggCount = (feature) => feature.properties[state.type + "Count"] || 0;
 function aggMetric(feature, metricKey) {
   const v = feature.properties[state.type + AGG_FIELD[metricKey]];
   if (v == null) return null;
-  return metricKey === "ping" ? v * M2_PER_PING : v;   // aggregate size is in 坪; UI shows m²
+  return metricKey === "unit" ? v * M2_PER_PING : v;   // stored price is per-m² → show per-ping; size already in ping
 }
 
 // Individual transactions load lazily: only when a district is drilled into do we fetch its
@@ -443,7 +444,7 @@ function renderHouses() {
 function housePopup(r) {
   const row = (l, v) => `<div class="popupStat"><span>${l}</span><b>${v}</b></div>`;
   return `<b>${pretty(r.buildingType) || "Property"}</b>`
-    + row("Unit price", r.unitPricePerM2 != null ? METRIC.unit.fmt(r.unitPricePerM2) : "—")
+    + row("Unit price", r.unitPricePerM2 != null ? METRIC.unit.fmt(METRIC.unit.val(r)) : "—")
     + row("Total price", r.totalPrice != null ? METRIC.total.fmt(r.totalPrice) : "—")
     + row("Living size", r.livingAreaPing != null ? METRIC.ping.fmt(r.livingAreaPing) : "—")
     + row("Layout", `${r.bedrooms ?? "?"} bd / ${r.bathrooms ?? "?"} ba`)
@@ -567,7 +568,7 @@ function renderTimeChart() {
   const months = ser.months;
   const counts = ser.count;
   // Median only where n is adequate; thin months shaded pale so the noisy tail doesn't read as a trend.
-  const medUnit = ser.medUnitPrice.map((v, i) => (counts[i] >= THIN_MONTH_N ? v : null));
+  const medUnit = ser.medUnitPrice.map((v, i) => (counts[i] >= THIN_MONTH_N ? v * M2_PER_PING : null));
   const barColors = counts.map((n) => n >= THIN_MONTH_N ? "#93c5fd" : "#e2e8f0");
 
   chart = new Chart(document.getElementById("timeChart"), {
@@ -701,8 +702,8 @@ const COLUMNS = [
   { key: "target", label: "Target", cell: (r) => pretty(r.targetType), sort: (r) => r.targetType },
   { key: "date", label: "Date", cell: monthStr, sort: (r) => (r.saleYear || 0) * 100 + (r.saleMonth || 0), csv: monthStr },
   { key: "total", label: "Total price", num: true, cell: (r) => money(r.totalPrice), sort: (r) => r.totalPrice, csv: (r) => r.totalPrice },
-  { key: "unit", label: "Unit NT$/m²", num: true, cell: (r) => money(r.unitPricePerM2), sort: (r) => r.unitPricePerM2, csv: (r) => r.unitPricePerM2 },
-  { key: "ping", label: "Living size (m²)", num: true, cell: (r) => (r.livingAreaPing != null ? Math.round(r.livingAreaPing * M2_PER_PING) : "—"), sort: (r) => r.livingAreaPing, csv: (r) => (r.livingAreaPing != null ? +(r.livingAreaPing * M2_PER_PING).toFixed(1) : "") },
+  { key: "unit", label: "Unit NT$/ping", num: true, cell: (r) => (r.unitPricePerM2 != null ? money(r.unitPricePerM2 * M2_PER_PING) : "—"), sort: (r) => r.unitPricePerM2, csv: (r) => (r.unitPricePerM2 != null ? Math.round(r.unitPricePerM2 * M2_PER_PING) : "") },
+  { key: "ping", label: "Living size (ping)", num: true, cell: (r) => (r.livingAreaPing != null ? Math.round(r.livingAreaPing) : "—"), sort: (r) => r.livingAreaPing, csv: (r) => (r.livingAreaPing != null ? +r.livingAreaPing.toFixed(1) : "") },
   { key: "beds", label: "Beds", num: true, cell: (r) => r.bedrooms ?? "—", sort: (r) => r.bedrooms, csv: (r) => r.bedrooms },
   { key: "baths", label: "Baths", num: true, cell: (r) => r.bathrooms ?? "—", sort: (r) => r.bathrooms, csv: (r) => r.bathrooms },
   { key: "building", label: "Building type", cell: (r) => pretty(r.buildingType), sort: (r) => r.buildingType },

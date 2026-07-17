@@ -9,7 +9,8 @@ const $ = (id) => document.getElementById(id);
 const clamp = (x, lo, hi) => Math.min(Math.max(x, lo), hi);
 const pretty = (s) => (s == null ? "" : String(s).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase()));
 const fmtM = (v) => "NT$" + (v / 1e6).toFixed(v >= 1e7 ? 1 : 2) + "M";
-const fmtUnit = (v) => "NT$" + Math.round(v).toLocaleString() + "/m²";
+// the model outputs price per m²; Taiwan quotes per ping, so ×m2PerPing for display
+const fmtUnit = (v) => "NT$" + Math.round(v * model.m2PerPing).toLocaleString() + "/ping";
 
 // House/apartment building types only (this is a home predictor, not factories/offices),
 // each with realistic floor bounds so you can't build a 14-storey walk-up.
@@ -123,14 +124,14 @@ function compute() {
   const isHouse = $("pType").value === "townhouse";
   const inp = {
     cityCode: $("pCity").value, districtEn: $("pDistrict").value,
-    // size inputs are in m²; the model works in ping
-    livingAreaPing: num("pSize", 100) / model.m2PerPing, buildingAgeYears: num("pAge", d.buildingAgeYears),
+    // size inputs are in ping (Taiwan's native unit), which is exactly what the model uses
+    livingAreaPing: num("pSize", 30), buildingAgeYears: num("pAge", d.buildingAgeYears),
     // A house has no single "unit floor" (you own the whole building), and in the LVR training
     // data townhouses carry no transfer-floor at all — so use the model's default rather than
     // pinning it to the top storey ("owns it all"), which the model was never trained on.
     transferFloor: isHouse ? d.transferFloor : num("pFloor", d.transferFloor), totalFloors: tot,
     bedrooms: num("pBeds", d.bedrooms), bathrooms: num("pBaths", d.bathrooms),
-    livingRooms: num("pLiving", d.livingRooms), landAreaPing: num("pLandPing", 16) / model.m2PerPing,
+    livingRooms: num("pLiving", d.livingRooms), landAreaPing: num("pLandPing", 5),
     mainBuildingRatio: num("pMainRatio", d.mainBuildingRatio),
     buildingType: $("pType").value, mainUse: $("pUse").value, mainMaterial: $("pMaterial").value,
     hasParking: $("pParking").checked ? 1 : 0, hasElevator: $("pElevator").checked ? 1 : 0,
@@ -158,7 +159,7 @@ function compute() {
 function render(unit, areaM2, bands, adaptive) {
   const totalPoint = unit * areaM2;
   $("predBig").textContent = fmtM(totalPoint);
-  $("predUnit").textContent = fmtUnit(unit) + " · " + Math.round(areaM2) + " m²";
+  $("predUnit").textContent = fmtUnit(unit) + " · " + Math.round(areaM2 / model.m2PerPing) + " ping";
 
   const lo = bands[95][0] * areaM2, hi = bands[95][1] * areaM2, span = Math.max(hi - lo, 1);
   const pos = (v) => (100 * (v * areaM2 - lo) / span).toFixed(1) + "%";
