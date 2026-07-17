@@ -108,6 +108,8 @@ select:last-child { margin-bottom: 0; }
 
 .statCtrl { margin-bottom: 11px; }
 .miniLabel { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.unitNote { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 6px 0 0; }
+.unitNote b { color: var(--ink); font-weight: 600; }
 #minN { width: 100%; }
 .yearRange { display: flex; align-items: center; gap: 6px; }
 .yearRange select { margin: 0; }
