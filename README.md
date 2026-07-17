@@ -6,9 +6,9 @@ no paywall, no backend.
 
 **Try it here → https://kadentato.github.io/taiwanHousing/**
 
-![An animated map of Taiwan replaying 2012 to 2026 one year at a time, each district shaded by that year's median housing sale price on a fixed colour scale — the Taipei area starts red and the rest of the west coast steadily warms as prices climb ~90% over the period.](spatialAnalysis/taiwanPriceTimelapse.gif)
+![An animated map of Taiwan sweeping quarter by quarter from 2013 to 2026, each district shaded by its trailing-12-month median housing sale price on a fixed colour scale — the Taipei area starts red and the rest of the west coast steadily warms as prices climb ~90% over the period.](spatialAnalysis/taiwanPriceTimelapse.gif)
 
-*Each frame is one year of sales, shaded by that year's median price on a fixed scale — so a district turning redder means prices genuinely rose, not a re-coloured legend. ([static all-years version](spatialAnalysis/taiwanPriceMap.png))*
+*One frame per quarter, each shaded by that district's median over the trailing 12 months, on a fixed scale — so a district turning redder means prices genuinely rose, not a re-coloured legend. ([static all-years version](spatialAnalysis/taiwanPriceMap.png))*
 
 ## What it is
 
