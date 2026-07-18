@@ -45,7 +45,7 @@ function clampFloor() {
 }
 
 async function init() {
-  model = await (await fetch("dataFiles/predictor.json?v=5")).json();
+  model = await (await fetch("dataFiles/predictor.json?v=6")).json();
   const opt = (v, label) => `<option value="${v}">${label}</option>`;
   $("pCity").innerHTML = model.ui.cities.map((c) => opt(c.code, c.name)).join("");
   const types = model.ui.buildingTypes.filter((t) => RESIDENTIAL.includes(t));

@@ -26,6 +26,7 @@ import geopandas as gpd
 import pandas as pd
 
 from . import advancedStats
+from . import anomalyFilter
 from . import districtRecords
 from .inflation import CPI, CPI_BASE_YEAR
 from .valueMappings import HOUSING_TARGETS
@@ -123,7 +124,8 @@ _HOUSE_COLS = ["houseId", "transactionType", "targetType", "cityId", "districtId
                "hasManagementOrg", "relatedPartyDeal", "cancelledDeal", "hasAddition"]
 
 
-def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] = None) -> dict:
+def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] = None,
+              writeRecords: bool = True) -> dict:
     os.makedirs(outDir, exist_ok=True)
     houses = pd.read_sql_query(f"SELECT {', '.join(_HOUSE_COLS)} FROM houses", conn)
     # Registration began 2012 Q3; a handful of rows carry data-entry dates (1900s /
@@ -137,6 +139,11 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
     _mc = _ym.value_counts().sort_index()
     _ref = _mc.iloc[-36:-6] if len(_mc) >= 42 else _mc
     houses = houses[_ym <= int(_mc[_mc >= 0.5 * _ref.median()].index.max())].copy()
+    # Drop SALE records whose numbers can't be real (impossible layout / typo price / absurd
+    # room counts) so medians, the records table and totals aren't polluted. Sales only — the
+    # price band would wrongly nuke rentals (monthly rent/m² is a different scale).
+    _saleAnom = (houses["transactionType"] == "sale") & anomalyFilter.anomalyMask(houses)
+    houses = houses[~_saleAnom].copy()
     cities = pd.read_sql_query("SELECT * FROM cities", conn)
     regions = pd.read_sql_query("SELECT * FROM regions", conn)
     districts = pd.read_sql_query("SELECT * FROM districts", conn)
@@ -201,7 +208,9 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
     # ---- per-district FULL record files (no sampling) — the web map lazy-loads each district's
     # complete set on drill-in. A geocoder (geocodeDoorplate.py) later overwrites the geocoded
     # cities' files with real coordinates. ----
-    nD, nR, _ = districtRecords.exportAll(conn, outDir)
+    nD, nR = (None, None)
+    if writeRecords:
+        nD, nR, _ = districtRecords.exportAll(conn, outDir)
     recordsSampled = False
 
     # ---- summary / hierarchy / tags ----
@@ -243,5 +252,5 @@ def exportAll(conn: sqlite3.Connection, outDir: str, disclosure: Optional[str] =
     with open(os.path.join(outDir, "summary.json"), "w", encoding="utf-8") as fh:
         json.dump(_finite(summary), fh, ensure_ascii=False, allow_nan=False)
 
-    return {"districts": len(districtRows), "cities": len(cityRows), "regions": len(regionRows),
-            "recordFiles": recordsByCity["cityId"].nunique()}
+    return {"districts": len(districtRows), "cities": len(cityRows), "regions": len(regions),
+            "recordFiles": nD, "recordRows": nR}

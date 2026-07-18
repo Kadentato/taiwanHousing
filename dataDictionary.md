@@ -110,11 +110,29 @@ for **sales** over the full history (101S3–115S2 / 2012 Q3 – 2026 Q2).
 | 1 | Raw load | Read every season's sale main-file (`*_lvr_land_a.csv`); parse ROC dates, Chinese-numeral floors, two header rows; `quoting=QUOTE_NONE` for the unbalanced quotes | — | 4,825,329 | — |
 | 2 | De-duplicate | The same deal re-appears across overlapping quarterly releases; keep one per serial number (`編號`) | 4,825,329 | 4,810,276 | 15,053 (0.3%) |
 | 3 | Housing filter | Drop **land-only** (土地) and **parking-only** (車位) transactions; keep building/house sales | 4,810,276 | 3,493,822 | 1,316,454 (27%) |
-| 4 | Date sanity | Drop missing/impossible dates; keep 2012 → present | 3,493,822 | ~3,485,000 | ~8k (0.2%) |
-| 5 | Price sanity *(model only)* | Drop unit price < NT$5,000 or > 3,000,000 /m² (data-entry errors) | ~3,485,000 | ~3,470,000 | ~5,600 (0.16%) |
+| 4 | Date sanity | Drop missing/impossible dates; keep 2012 → present | 3,493,822 | 3,484,620 | ~9k (0.2%) |
+| 5 | Value & layout sanity | Drop sale records whose numbers can't be a real single home (see below) | 3,484,620 | 3,412,743 | 71,877 (2.06%) |
 
-So the cleaning removes **one big, deliberate slice** (land/parking, 27%) and then <0.5% of genuine
+So the cleaning removes **one big, deliberate slice** (land/parking, 27%) and then ~2% of genuine
 data-quality junk. A city's monthly sale volume is essentially untouched.
+
+**Step 5 — what "the numbers don't add up" means.** A reviewer spotted records like an *"88 m² home
+with 5 bedrooms and 4 bathrooms."* Auditing every sale surfaced a small tail where the government's raw
+fields are internally inconsistent, so we drop a row if **any** of these hold (`dataPipeline/anomalyFilter.py`):
+- **unit price** outside NT$5,000–3,000,000 /m² (data-entry price typos);
+- **absurd room counts** — more than 12 bedrooms, 10 bathrooms, or 18 bed+bath together (a single home,
+  not a whole apartment block sold as one deal);
+- **layout can't physically fit the area** — living area below a bare floor of *5 m²/bedroom +
+  2.5 m²/bathroom*, or a realistic floor of *8 m² + 8 m²/bedroom + 3.5 m²/bathroom*;
+- **rooms too dense** — a home with ≥ 4 rooms (bed + bath) averaging under **10 m² per room**. This is
+  what catches the "88 m² / 5bd-4ba" case (≈8 m²/room): usually a townhouse whose recorded transfer area
+  covers one floor while the layout field counts the whole building. Genuine small apartments sit at
+  ~13–15 m²/room, well clear of the cut, so normal stock is untouched.
+
+This runs across the **whole site and the model** (not just the model), so the records table, the drill-in
+distribution, the medians and the predictor all exclude impossible rows. It removes **71,877 sales
+(2.06%)**; the map's area medians barely move (they were already robust to outliers), but the individual
+dots and totals are now clean.
 
 **Nothing is sampled — the whole site is the full cleaned dataset.**
 - **Choropleth colours + "Current selection" stats** read the precomputed per-area full-data medians and

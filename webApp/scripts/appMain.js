@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=19";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=20";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 ping (坪) = 3.305785 m². Sizes shown in ping; the stored
                                 // unit price is per-m², so ×M2_PER_PING converts it to per-ping.
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
@@ -952,6 +952,7 @@ function buildMethodsPanel() {
   html += `<h3>Definitions &amp; handling</h3><ul class="muted">`
     + `<li>All figures are <b>medians</b> (robust to the extreme outliers present); the sidebar shows IQR and a bootstrap 95% CI.</li>`
     + `<li>"Housing" excludes land-only and parking-only transactions.</li>`
+    + `<li>Records whose numbers can't be a real home are dropped (~2%): typo prices, absurd room counts, a floor area too small for the stated layout, or impossibly dense rooms (e.g. an "88&nbsp;m² place with 5 bedrooms &amp; 4 bathrooms"). See the About page for the full chain.</li>`
     + `<li>Unit price is the government's 單價 (already parking-adjusted); "living size" nets parking out of the transferred area.</li>`
     + `<li>Building age = completion→sale; a new build completing after its sale is treated as age 0.</li></ul>`;
   html += `<h3>Field completeness (sale housing, n=${s.dealFlagCounts.total.toLocaleString()})</h3>`

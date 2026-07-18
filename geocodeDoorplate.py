@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from dataPipeline.webDataExporter import HOUSING_TARGETS  # noqa: E402
 from dataPipeline import districtRecords as dr  # noqa: E402
+from dataPipeline import anomalyFilter  # noqa: E402
 
 DB = os.path.join(HERE, "database", "taiwanHousing.sqlite")
 CACHE = os.path.join(HERE, "geoReference", "doorplate")
@@ -207,6 +208,7 @@ def main(argv):
         h = pd.read_sql(f"SELECT {cols} FROM houses WHERE cityId={cid} AND transactionType='sale' "
                         "AND address IS NOT NULL", conn)
         h = h[h["targetType"].isin(HOUSING_TARGETS) & h["saleYear"].between(2012, 2026)].copy()
+        h = anomalyFilter.dropAnomalies(h)   # same sale-anomaly drop as the exporter, for parity
         g = [geocode(a, districts, doormap, roadmap) for a in h["address"]]
         h["lat"] = [x[0] for x in g]
         h["lon"] = [x[1] for x in g]

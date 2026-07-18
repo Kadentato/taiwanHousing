@@ -19,6 +19,8 @@ import os
 
 import pandas as pd
 
+from . import anomalyFilter
+
 # Everything the dots, tooltip, records table and client-side filters need — nothing else.
 COLS = ["lat", "lon", "unitPricePerM2", "totalPrice", "livingAreaPing", "bedrooms", "bathrooms",
         "buildingAgeYears", "buildingType", "parkingType", "hasParking", "hasElevator",
@@ -81,6 +83,7 @@ def exportAll(conn, outDir):
     df = pd.read_sql_query(
         f"SELECT {','.join(sel)} FROM houses WHERE transactionType='sale' AND targetType IN ({ph})",
         conn, params=HOUSING)
+    df = anomalyFilter.dropAnomalies(df)   # drop impossible/implausible sale records
     total, nb = 0, 0
     for did, grp in df.groupby("districtId"):
         path = os.path.join(dst, f"{int(did)}.json.gz")

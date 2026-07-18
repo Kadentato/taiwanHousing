@@ -23,6 +23,7 @@ import pandas as pd
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
+from dataPipeline import anomalyFilter  # noqa: E402
 from dataPipeline import valueMappings as vm  # noqa: E402
 from dataPipeline.chineseNumeralParser import parseFloorCount  # noqa: E402
 from dataPipeline.dealFlags import dealFlags  # noqa: E402
@@ -137,6 +138,13 @@ def main() -> int:
         print(f"  [{i}/{len(seasons)}] {name}: +{len(rows) - before:,} {kind}  (total {len(rows):,})")
 
     df = pd.DataFrame(rows)
+    # Drop records whose numbers can't be real (impossible layout / typo price / absurd room
+    # counts). Sale-scale prices only (suffix a/b); rentals use a different price scale.
+    if args.txn_suffix in ("a", "b"):
+        before = len(df)
+        df = anomalyFilter.dropAnomalies(df)
+        print(f"  dropped {before - len(df):,} anomalous rows "
+              f"({100 * (before - len(df)) / max(before, 1):.2f}%)")
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     df.to_parquet(args.out, index=False)
 
