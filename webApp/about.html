@@ -115,11 +115,38 @@
       region blob. All the geometry work is geopandas and Shapely, which is the standard Python stack for
       this, and I store the shapes as WKT text right in the database so they load straight back into
       geopandas — or open in QGIS — with no conversion.</p>
-      <p>Honest caveat: since I only have district centres, every house in a district gets dropped on the
-      exact same point. So the map is great for "where are the expensive clusters" and useless for "find me
-      this one building." That's a deliberate trade. Real per-house coordinates would mean geocoding tens of
-      thousands of addresses, which is slow and rate-limited, so I left hooks in the database for it and
-      moved on.</p>
+      <h3 id="geocoding">Which places have real street addresses — and which don't</h3>
+      <p>Part of the map <em>does</em> have true per-building coordinates. Taiwan's government publishes
+      <b>門牌 (doorplate) address data</b> — every registered address with a survey coordinate — so where that
+      exists I match each sale's address against it and drop the dot on the actual building. Those coordinates
+      arrive in TWD97 (EPSG:3826) and get reprojected to WGS84 for the map.</p>
+      <p>That's done for the five biggest metros, which between them are about half of every sale in the
+      dataset:</p>
+      <ul>
+        <li><b>New Taipei City</b> — 90% of its 646,843 sales placed (all 29 districts)</li>
+        <li><b>Taipei City</b> — 89% of 277,415 (all 12)</li>
+        <li><b>Taichung City</b> — 83% of 526,665 (all 29)</li>
+        <li><b>Taoyuan City</b> — 73% of 478,293 (all 13)</li>
+        <li><b>Tainan City</b> — 69% of 262,591 (30 of its 38 districts)</li>
+      </ul>
+      <p>That's <b>1,793,457 of 3,423,280 sales (52%)</b> at a real address. The ones that don't match are
+      usually addresses the doorplate file spells differently, or new builds that postdate it — those fall back
+      to the district centre.</p>
+      <p><b>Everywhere else — 16 cities and counties, 248 districts — every sale still sits on its district's
+      centre point.</b> The reason is dull but real: the address data is published <em>per city and county</em>,
+      each on its own portal in its own column layout, rather than as one national download. So every additional
+      area is a separate integration, not a checkbox. Two cases in particular:</p>
+      <ul>
+        <li><b>Kaohsiung</b> — 433,703 sales, far the largest gap. It's already fully wired up, but its
+        open-data platform returns a server-side error for every one of its datasets, and has done since I
+        first tried. It finishes itself the moment their service recovers.</li>
+        <li><b>The other 15</b> — Hsinchu County and City, Changhua, Yilan, Pingtung, Miaoli, Keelung, Yunlin,
+        Hualien, Chiayi City and County, Nantou, Taitung, Kinmen, Penghu — simply haven't had their source
+        located and mapped yet. They're smaller markets, so each buys less coverage than it costs in effort.</li>
+      </ul>
+      <p>So if you drill into Taipei and see dots strung along the streets, that's real. If you drill into
+      Hualien and see them stacked on a single point, that's the district centre standing in — the prices and
+      details are still exact, only the position is approximate.</p>
 
       <h2>Why it's just files, with no server</h2>
       <p>The whole front end is plain HTML, CSS, and JavaScript. No React, no framework, because it's a map
@@ -136,9 +163,10 @@
 
       <h2>Stuff I already know is imperfect</h2>
       <ul>
-        <li>Outside the five biggest metros (Taipei, New Taipei, Taichung, Taoyuan, Tainan, which are now
-        geocoded to real street addresses), houses still land on their district's centre point — great for
-        "where are the expensive clusters," useless for "find me this one building."</li>
+        <li>Only about half the sales sit at a real street address — the five biggest metros. The other 16
+        cities and counties (Kaohsiung the biggest) still land on their district's centre point, so for those
+        the map answers "where are the expensive areas," not "find me this one building." Full breakdown of
+        what's geocoded and why the rest isn't is <a href="#geocoding">above</a>.</li>
         <li>School distance is stubbed out in the schema but not actually filled in.</li>
         <li>Big districts (100k+ sales) draw every dot on one canvas, so the very first click into one can take a
         few seconds to fetch and render; after that it's instant. Colours and

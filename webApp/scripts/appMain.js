@@ -666,6 +666,17 @@ function renderStats() {
     if (ci) html += row("Median 95% CI", METRIC.unit.fmt(ci[0]) + " – " + METRIC.unit.fmt(ci[1]));
     html += row("Median total price", fmt(METRIC.total.pick(rs), METRIC.total))
       + row("Median living size", fmt(METRIC.ping.pick(rs), METRIC.ping));
+    // Say plainly whether the dots are at real addresses or stacked on the district centre —
+    // only 5 metros have doorplate geocoding, and stacked dots otherwise look like a bug.
+    const placed = store.records.reduce((n, r) => n + (r.lat != null ? 1 : 0), 0);
+    const share = store.records.length ? placed / store.records.length : 0;
+    if (share === 0) {
+      html += note("This district isn't geocoded, so every dot sits on the district's centre point. "
+        + "The prices and details are exact — only the positions are approximate. See About for which cities have real addresses.");
+    } else if (share < 0.98) {
+      html += note(`${Math.round(share * 100)}% of these dots are at their real street address; `
+        + "the rest are addresses the government's doorplate file doesn't match, and fall back to the district centre.");
+    }
     document.getElementById("statsBody").innerHTML = html;
     return;
   }
@@ -954,6 +965,7 @@ function buildMethodsPanel() {
     + `<li>"Housing" excludes land-only and parking-only transactions.</li>`
     + `<li>Records whose numbers can't be a real home are dropped (~2%): typo prices, absurd room counts, a floor area too small for the stated layout, or impossibly dense rooms (e.g. an "88&nbsp;m² place with 5 bedrooms &amp; 4 bathrooms"). See the About page for the full chain.</li>`
     + `<li>Unit price is the government's 單價 (already parking-adjusted); "living size" nets parking out of the transferred area.</li>`
+    + `<li><b>Dot positions:</b> only Taipei, New Taipei, Taichung, Taoyuan and Tainan are geocoded to real street addresses (from government 門牌 doorplate data) — about half of all sales. The other 16 cities and counties, Kaohsiung included, place every dot on the district's centre point. Prices are exact either way.</li>`
     + `<li>Building age = completion→sale; a new build completing after its sale is treated as age 0.</li></ul>`;
   html += `<h3>Field completeness (sale housing, n=${s.dealFlagCounts.total.toLocaleString()})</h3>`
     + `<p class="muted">Core fields are essentially complete — the few blanks are shown for transparency.</p>`
