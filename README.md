@@ -6,9 +6,9 @@ no paywall, no backend.
 
 **Try it here → https://kadentato.github.io/taiwanHousing/**
 
-![An animated map of Taiwan sweeping quarter by quarter from 2013 to 2026, each district shaded by its trailing-12-month median housing sale price on a fixed colour scale — the Taipei area starts red and the rest of the west coast steadily warms as prices climb ~90% over the period.](spatialAnalysis/taiwanPriceTimelapse.gif)
+![An animated map of Taiwan sweeping quarter by quarter from 2013 to 2026, each district shaded by its trailing-12-month median housing sale price in constant 2021 NT$ on a fixed colour scale — the Taipei area starts red and the rest of the west coast steadily warms as real prices climb about 50% over the period.](spatialAnalysis/taiwanPriceTimelapse.gif)
 
-*One frame per quarter, each shaded by that district's median over the trailing 12 months, on a fixed scale — so a district turning redder means prices genuinely rose, not a re-coloured legend. ([static all-years version](spatialAnalysis/taiwanPriceMap.png))*
+*One frame per quarter, each shaded by that district's median over the trailing 12 months, **inflation-adjusted to constant 2021 NT$** on a fixed scale — so a district turning redder means **real** appreciation (actual purchasing power), not inflation and not a re-coloured legend. Nationally the median rose **+49% in real terms** from 2013 to 2025 — the headline nominal figure is +75%, so about a third of it was just the currency. ([static all-years version](spatialAnalysis/taiwanPriceMap.png))*
 
 ## What it is
 

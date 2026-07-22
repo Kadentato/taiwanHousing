@@ -8,6 +8,10 @@ Cadence is quarterly, but each frame shows the median over the *trailing 12 mont
 quarter. That keeps ~300 districts lit every frame and turns the animation into a smooth sweep
 instead of the flicker you'd get from thin single-quarter medians in small districts.
 
+Prices are **inflation-adjusted to constant 2021 NT$** (DGBAS CPI, dataPipeline/inflation.py) before
+the medians are taken, so the reddening shows REAL appreciation — actual gained purchasing power,
+not the ~20% of headline growth that is just currency losing value over 2012-2026.
+
 Reads per-transaction sales (modeling/data/sales.parquet) for the medians, and the shipped
 township polygons for geometry.
 
@@ -18,6 +22,7 @@ from __future__ import annotations
 import io
 import os
 import re
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
@@ -30,6 +35,9 @@ from PIL import Image  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+sys.path.insert(0, ROOT)
+from dataPipeline.inflation import CPI_BASE_YEAR, realFactor  # noqa: E402
+
 OUT = os.path.join(HERE, "taiwanPriceTimelapse.gif")
 PARQUET = os.path.join(ROOT, "modeling", "data", "sales.parquet")
 
@@ -59,6 +67,9 @@ def main() -> int:
     df["qi"] = df.saleYear.astype(int) * 4 + ((df.saleMonth.astype(int) - 1) // 3)
     df = df[(df.qi >= FIRST_QI - 3) & (df.qi <= LAST_QI)]        # keep enough lead for the window
     df["key"] = list(zip(df.cityCode, df.districtZh.map(norm)))
+    # Deflate every sale by ITS OWN year's CPI before any median is taken, so the animation shows
+    # real appreciation in constant 2021 NT$ rather than partly just inflation.
+    df["priceReal"] = df.unitPricePerM2 * df.saleYear.astype(int).map(realFactor)
 
     # A trailing median is the median of the raw values in the window, NOT an average of quarterly
     # medians, so keep the rows and re-median per frame.
@@ -69,8 +80,8 @@ def main() -> int:
     windows = {}
     for qi in frame_qis:
         w = df[(df.qi <= qi) & (df.qi >= qi - 3)]
-        med = w.groupby("key")["unitPricePerM2"].median() * M2_PER_PING   # per-ping for display
-        cnt = w.groupby("key")["unitPricePerM2"].size()
+        med = w.groupby("key")["priceReal"].median() * M2_PER_PING   # per-ping, constant 2021 NT$
+        cnt = w.groupby("key")["priceReal"].size()
         windows[qi] = med[cnt >= MIN_SALES]
     allv = np.concatenate([m.values for m in windows.values()])
     vmin, vmax = float(np.percentile(allv, 5)), float(np.percentile(allv, 95))
@@ -89,18 +100,18 @@ def main() -> int:
         polys[polys["price"].notna()].plot(
             ax=ax, column="price", cmap="YlOrRd", vmin=vmin, vmax=vmax,
             edgecolor="face", linewidth=0.4, legend=True,
-            legend_kwds={"label": "Median sale price (NT$/ping)", "shrink": 0.42,
+            legend_kwds={"label": f"Median sale price (NT$/ping, {CPI_BASE_YEAR} NT$)", "shrink": 0.42,
                          "format": FuncFormatter(lambda x, _: f"{x / 1000:.0f}k")})
         ax.set_xlim(119.3, 122.05)
         ax.set_ylim(21.85, 25.35)
         ax.set_axis_off()
-        ax.set_title("Taiwan — median housing sale price by district", fontsize=12, pad=6)
+        ax.set_title("Taiwan — real housing sale price by district", fontsize=12, pad=6)
         ax.text(0.03, 0.965, f"{year}", transform=ax.transAxes, fontsize=32, fontweight="bold",
                 va="top", ha="left", color="#7a1a1a")
         ax.text(0.035, 0.905, f"Q{q}", transform=ax.transAxes, fontsize=15, fontweight="bold",
                 va="top", ha="left", color="#7a1a1a")
-        ax.text(0.03, 0.055, "trailing 12 months", transform=ax.transAxes, fontsize=8.5,
-                va="bottom", ha="left", color="#555")
+        ax.text(0.03, 0.055, f"trailing 12 months · inflation-adjusted to {CPI_BASE_YEAR} NT$",
+                transform=ax.transAxes, fontsize=8.5, va="bottom", ha="left", color="#555")
         fig.tight_layout()
 
         buf = io.BytesIO()
