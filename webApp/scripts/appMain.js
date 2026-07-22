@@ -537,7 +537,7 @@ function updateLegend(bins, metric, note, showSize) {
       else label = metric.fmt(bins[i - 1]) + " – " + metric.fmt(bins[i]);
       html += `<div><i style="background:${PALETTE[i]}"></i>${label}</div>`;
     }
-    html += `<div><i style="background:${NO_DATA}"></i>No data / n < ${state.minN}</div>`;
+    html += `<div><i style="background:${NO_DATA}"></i>No data</div>`;
     if (showSize) html += `<div class="legendSize"><svg width="76" height="24">`
       + `<circle cx="9" cy="17" r="4" fill="#9ca3af"/><circle cx="30" cy="14" r="7" fill="#9ca3af"/>`
       + `<circle cx="58" cy="12" r="11" fill="#9ca3af"/></svg><span>bubble size ∝ n</span></div>`;
@@ -821,6 +821,7 @@ function setView(view) {
 function renderAll() {
   state.page = 0;   // filter/view changes reset paging; sort & pager call renderTable directly
   renderStats();
+  renderDataCard();
   if (state.view === "table") { renderTable(); return; }
   renderMap();
   renderChart();
@@ -828,10 +829,8 @@ function renderAll() {
 
 // --------------------------------------------------------------- controls ---
 function syncControls() {
-  const lvl = state.level === "houses" ? "district" : state.level; // houses drills from district
-  document.querySelectorAll("#levelToggle button").forEach((b) =>
-    b.classList.toggle("active", b.dataset.level === lvl));
-  document.getElementById("metricSelect").value = state.metric;
+  document.getElementById("metricSelect").value =
+    state.colorMode === "lisa" ? "lisa" : state.metric;
   buildCityScope();
   document.getElementById("cityScope").value = state.scopeCity;
 }
@@ -842,39 +841,37 @@ function buildCityScope() {
     + store.summary.cities.map((c) => `<option value="${c.cityCode}">${c.nameEn}</option>`).join("");
 }
 
-function buildTagChips() {
-  const groups = {
-    parkingPresence: "Parking", parkingType: "Parking type",
-    managementOrg: "Management", elevator: "Elevator",
-  };
-  const byDim = {};
-  for (const tag of store.summary.tags) {
-    const [dim] = tagInfo(tag.slug);
-    (byDim[dim] = byDim[dim] || []).push(tag);
+// "Take the data further" — the point of the site is to hand the dataset over, not to be an
+// exhaustive filter UI. Offer the exact slice being looked at, plus the fuller sources.
+function renderDataCard() {
+  const host = document.getElementById("dataLinks");
+  if (!host) return;
+  const drilled = state.scopeDistrict && store.records.length;
+  const rows = drilled ? filteredRecords() : [];
+  const item = (icon, label, sub) =>
+    `<span class="dlIcon">${icon}</span><span><b>${label}</b><small>${sub}</small></span>`;
+
+  let html = "";
+  if (drilled) {
+    html += `<button class="dataLink" id="dlDistrict">`
+      + item("↓", `This district as CSV`,
+             `${rows.length.toLocaleString()} sales · every field shown in the table`) + `</button>`;
+  } else {
+    html += `<div class="dataLink muted">`
+      + item("↓", "This district as CSV", "Click a district on the map to enable") + `</div>`;
   }
-  const host = document.getElementById("tagGroups");
-  host.innerHTML = "";
-  for (const dim of Object.keys(groups)) {
-    if (!byDim[dim]) continue;
-    const wrap = document.createElement("div");
-    wrap.className = "tagGroup";
-    wrap.innerHTML = `<div class="tagGroupName">${groups[dim]}</div>`;
-    const chips = document.createElement("div");
-    chips.className = "chips";
-    for (const tag of byDim[dim]) {
-      const c = document.createElement("button");
-      c.className = "chip";
-      c.textContent = tag.labelEn.replace(/^Parking: /, "");
-      c.onclick = () => {
-        state.tags.has(tag.slug) ? state.tags.delete(tag.slug) : state.tags.add(tag.slug);
-        c.classList.toggle("active");
-        renderAll();
-      };
-      chips.appendChild(c);
-    }
-    wrap.appendChild(chips);
-    host.appendChild(wrap);
-  }
+  html += `<a class="dataLink" href="dataFiles/marketSeriesMonthly.csv" download>`
+    + item("↓", "Monthly price series as CSV",
+           "Every city, every month, 2012→now · nominal + inflation-adjusted") + `</a>`;
+  html += `<a class="dataLink" href="database.html">`
+    + item("▸", "Query it in SQL, in your browser",
+           "The database with every table and column — no install") + `</a>`;
+  html += `<a class="dataLink" href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener">`
+    + item("▸", "Full dataset &amp; the code that built it",
+           "3.4M sales, the pipeline, and the data dictionary") + `</a>`;
+  host.innerHTML = html;
+  const btn = document.getElementById("dlDistrict");
+  if (btn) btn.onclick = () => downloadCsv(rows);
 }
 
 // Manual navigation (toggles/dropdowns) is a fresh start: drop the drill stack
@@ -882,26 +879,24 @@ function buildTagChips() {
 function clearDrill() { state.scopeDistrict = ""; store.records = []; viewStack.length = 0; }
 
 function wireControls() {
-  document.getElementById("levelToggle").onclick = (e) => {
-    if (!e.target.dataset.level) return;
-    state.level = e.target.dataset.level; clearDrill(); syncControls(); renderAll(); fitToScope();
+  // "Price clusters" lives in the same dropdown as the metrics: it's a colour MODE, not a
+  // metric, and it's only computed per district — so selecting it also drops to that level.
+  document.getElementById("metricSelect").onchange = (e) => {
+    if (e.target.value === "lisa") {
+      state.colorMode = "lisa";
+      if (state.level === "city") { state.level = "district"; clearDrill(); fitToScope(); }
+    } else {
+      state.colorMode = "metric";
+      state.metric = e.target.value;
+    }
+    renderAll();
   };
-  document.getElementById("metricSelect").onchange = (e) => { state.metric = e.target.value; renderAll(); };
+  // The map level follows the scope: "All cities" colours cities, picking one shows its
+  // districts. One control instead of two, and it matches how people actually navigate.
   document.getElementById("cityScope").onchange = (e) => {
     state.scopeCity = e.target.value;
     clearDrill();
-    if (state.level === "houses") state.level = "district";
-    syncControls(); renderAll(); fitToScope();
-  };
-  document.getElementById("resetBtn").onclick = () => {
-    state.scopeCity = ""; state.tags.clear(); clearDrill();
-    state.excludeFlags.clear(); state.winsorize = false; state.minN = 1;
-    state.yearFrom = DEFAULT_YEAR_FROM; state.yearTo = null;
-    if (state.level === "houses") state.level = "district";
-    document.querySelectorAll(".chip.active").forEach((c) => c.classList.remove("active"));
-    document.getElementById("winsorize").checked = false;
-    document.getElementById("minN").value = 1; document.getElementById("minNVal").textContent = "1";
-    document.getElementById("yearFrom").value = DEFAULT_YEAR_FROM ?? ""; document.getElementById("yearTo").value = "";
+    state.level = state.scopeCity ? "district" : "city";
     syncControls(); renderAll(); fitToScope();
   };
   document.getElementById("viewToggle").onclick = (e) => {
@@ -919,38 +914,15 @@ function wireControls() {
 }
 
 function wireStatControls() {
-  const minN = document.getElementById("minN");
-  minN.oninput = () => { state.minN = Number(minN.value); document.getElementById("minNVal").textContent = minN.value; renderAll(); };
-  document.getElementById("yearFrom").onchange = (e) => { state.yearFrom = e.target.value ? Number(e.target.value) : null; renderAll(); };
-  document.getElementById("yearTo").onchange = (e) => { state.yearTo = e.target.value ? Number(e.target.value) : null; renderAll(); };
-  document.getElementById("dealChips").onclick = (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    const f = b.dataset.flag;
-    state.excludeFlags.has(f) ? state.excludeFlags.delete(f) : state.excludeFlags.add(f);
-    b.classList.toggle("active");
-    renderAll();
-  };
-  document.getElementById("winsorize").onchange = (e) => { state.winsorize = e.target.checked; renderAll(); };
-  document.getElementById("fixedScale").onchange = (e) => { state.fixedScale = e.target.checked; renderAll(); };
-  document.getElementById("lisaMode").onchange = (e) => { state.colorMode = e.target.checked ? "lisa" : "metric"; renderAll(); };
   document.getElementById("methodsBtn").onclick = () => { buildMethodsPanel(); document.getElementById("methodsModal").hidden = false; };
   document.getElementById("methodsClose").onclick = () => { document.getElementById("methodsModal").hidden = true; };
   document.getElementById("methodsModal").addEventListener("click", (e) => { if (e.target.id === "methodsModal") e.currentTarget.hidden = true; });
 }
 
-function populateYearControls() {
-  const months = store.series?.national?.[state.type]?.months || [];
-  const years = [...new Set(months.map((m) => +m.slice(0, 4)))].sort((a, b) => a - b);
-  // Default the map/stats to the FULL history (2012→latest). Note: the headline unit-price
-  // median is then a nominal figure pooled across ~a decade, so it reads below today's level;
-  // narrow the year filter (or read the time chart) for current prices.
-  DEFAULT_YEAR_FROM = null;
-  state.yearFrom = DEFAULT_YEAR_FROM;
-  const opts = (first) => `<option value="">${first}</option>` + years.map((y) => `<option value="${y}">${y}</option>`).join("");
-  document.getElementById("yearFrom").innerHTML = opts("earliest");
-  document.getElementById("yearTo").innerHTML = opts("latest");
-  document.getElementById("yearFrom").value = DEFAULT_YEAR_FROM ?? "";
-}
+// The map and stats always cover the FULL history (2012→latest); the year window is no longer a
+// sidebar control — read the time chart for how prices moved, or filter the downloaded data.
+// Note the headline unit-price median is nominal and pooled across ~a decade, so it reads below
+// today's level.
 
 function buildMethodsPanel() {
   const s = store.summary;
@@ -1092,8 +1064,6 @@ async function init() {
   try {
     await loadData();
     renderHeader();
-    buildTagChips();
-    populateYearControls();
     wireControls();
     wireStatControls();
     syncControls();
