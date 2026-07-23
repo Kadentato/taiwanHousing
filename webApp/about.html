@@ -32,7 +32,7 @@
       <p>Everything here comes from one source — Taiwan's 實價登錄 ("real price registration") data. By law,
       property deals have to be reported, and the Ministry of the Interior dumps all of it out for free:
       the price, the floor area, the number of rooms, the year the building went up, whether it came with a
-      parking space. Genuinely open, genuinely public. Also genuinely a pain to open and understand, which
+      parking space. Genuinely open and public, and also a real pain to actually open and read, which
       is most of the reason this site exists.</p>
       <p>What you get from the government is a folder of 200-odd CSV files, in Mandarin, split across
       several files you have to stitch back together. You can't just look at that and learn anything. So the
@@ -82,16 +82,16 @@
         home) — that's the one big cut, 1,316,454 rows (27%), leaving <b>3,493,822 housing sales</b>.</li>
         <li><b>Date sanity</b> — impossible or missing dates — removes about 9,000 (0.2%), leaving
         <b>3,484,620</b>.</li>
-        <li><b>"The numbers don't add up" — 71,877 rows (2.06%).</b> This is the one worth explaining. A
-        reviewer noticed records like an <em>88 m² home with 5 bedrooms and 4 bathrooms</em> — which can't be
-        a real single home. Auditing every sale turned up a small tail where the government's raw fields
-        contradict each other, so a row is dropped if the <b>price is a clear typo</b> (outside
-        NT$5k–3M/m²), the <b>room counts are nonsense</b> (&gt;12 bedrooms or &gt;10 bathrooms), the
-        <b>floor area can't physically hold the layout</b>, or the <b>rooms are impossibly dense</b> — four
-        or more rooms averaging under 10 m² each. That last rule is what catches the 88 m² case (about
-        8 m² per room), while normal small apartments (13–15 m²/room) sail through untouched. These are
-        almost always townhouses whose recorded transfer area covers a single floor while the layout field
-        counts the whole building; we can't repair them per-record, so we drop them.</li>
+        <li><b>"The numbers don't add up" — 71,877 rows (2.06%).</b> This is the one worth explaining. I kept
+        running into records like an <em>88 m² home with 5 bedrooms and 4 bathrooms</em>, which can't be a
+        real single home. Going through every sale turned up a small tail where the government's raw fields
+        contradict each other, so I drop a row if the <b>price is an obvious typo</b> (outside NT$5k–3M/m²),
+        the <b>room counts are nonsense</b> (&gt;12 bedrooms or &gt;10 bathrooms), the <b>floor area is too
+        small to physically hold the layout</b>, or the <b>rooms are impossibly dense</b> (four or more rooms
+        averaging under 10 m² each). That last rule is the one that catches the 88 m² case, at about 8 m² per
+        room, while normal small apartments (13–15 m²/room) pass through fine. These are nearly always
+        townhouses where the recorded transfer area only covers one floor but the layout field counts the
+        whole building. I can't fix them one by one, so I drop them.</li>
       </ul>
       <p>So cleaning removes one deliberate slice (land/parking, 27%) and then ~2% of genuine data-quality
       junk. A city's month-by-month sale volume comes through basically intact, and the map's medians barely

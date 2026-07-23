@@ -180,14 +180,14 @@ function render(unit, areaM2, bands, adaptive) {
     + `</div></div>` + list;
 
   $("predNote").innerHTML =
-    "Gradient-boosted model on ~3.3M sales (2012–2026), cross-validated out-of-time. The <b>range</b> is a "
+    "Gradient-boosted model on ~3.3M sales (2012–2026), tested on years it hadn't seen. The <b>range</b> is a "
     + (adaptive
-      ? "<b>locally-weighted</b> conformal interval — its width is tailored to this property, so a standard "
-        + "home in a data-rich area gets a tighter band and an unusual one a wider band, "
+      ? "<b>locally-weighted</b> conformal interval, so its width is tailored to this home: a standard "
+        + "place in a data-rich area gets a tighter band, an unusual one a wider band, "
       : "conformal prediction interval, ")
-    + "calibrated so the stated share of real sales fall inside it. Prices are nominal NT$. Renovation, exact "
-    + "street/MRT location and negotiation aren't in the open registry, so a single home carries genuine "
-    + "uncertainty — read the 80% band as the practical range.";
+    + "calibrated so the stated share of real sales fall inside it. Prices are nominal NT$. Things like "
+    + "renovation, the exact street or MRT distance, and how the negotiation went aren't in the open registry, "
+    + "so any one home is genuinely hard to pin down. Read the 80% band as the realistic range.";
 }
 
 init();

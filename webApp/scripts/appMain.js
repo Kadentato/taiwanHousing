@@ -689,10 +689,10 @@ function renderStats() {
     const share = store.records.length ? placed / store.records.length : 0;
     if (share === 0) {
       html += note("This district isn't geocoded, so every dot sits on the district's centre point. "
-        + "The prices and details are exact — only the positions are approximate. See About for which cities have real addresses.");
+        + "The prices and details are still exact, it's just the positions that are rough. See About for which cities have real addresses.");
     } else if (share < 0.98) {
-      html += note(`${Math.round(share * 100)}% of these dots are at their real street address; `
-        + "the rest are addresses the government's doorplate file doesn't match, and fall back to the district centre.");
+      html += note(`${Math.round(share * 100)}% of these dots sit at their real street address. `
+        + "The rest are addresses the government's doorplate file doesn't match, so they fall back to the district centre.");
     }
     document.getElementById("statsBody").innerHTML = html;
     return;
@@ -707,9 +707,9 @@ function renderStats() {
       + row("Median living size", fmt(aggMetric(feat, "ping"), METRIC.ping));
   } else {
     html += row("Housing sales (n)", ((store.summary.housingTotals || store.summary.totals)[state.type] || 0).toLocaleString())
-      + note("Nationwide — pick a city or district for a median (the national mix spans very different markets).");
+      + note("Nationwide total. Pick a city or district to get a median, since lumping the whole country together mixes very different markets.");
   }
-  html += note("Click a district on the map for its individual transactions, IQR and 95% CI.");
+  html += note("Click a district on the map to see its individual sales, plus the IQR and a 95% CI.");
   document.getElementById("statsBody").innerHTML = html;
 }
 
@@ -759,7 +759,7 @@ function renderTable() {
   if (!(state.scopeDistrict && store.records.length)) {
     document.querySelector("#dataTable thead").innerHTML = "";
     document.querySelector("#dataTable tbody").innerHTML =
-      `<tr><td colspan="15" style="padding:44px 16px;text-align:center;color:#64748b;font-size:13px">Click a district on the map to preview its sales here — every field, the full set (not a sample). Then take the whole slice as a CSV.</td></tr>`;
+      `<tr><td colspan="15" style="padding:44px 16px;text-align:center;color:#64748b;font-size:13px">Click a district on the map to see its sales here. You get every field for every sale, not a sample, and you can download the lot as a CSV.</td></tr>`;
     document.getElementById("tablePager").innerHTML = "";
     document.getElementById("viewBarRight").innerHTML = "";
     return;
@@ -801,8 +801,8 @@ function renderTable() {
   document.getElementById("pageNext").onclick = () => { state.page++; renderTable(); };
 
   document.getElementById("viewBarRight").innerHTML =
-    `<span>Previewing all ${rows.length.toLocaleString()} sales — every field is in the file</span>`
-    + `<button class="downloadBtn" id="csvBtn">↓ Download this slice (CSV)</button>`;
+    `<span>All ${rows.length.toLocaleString()} sales here, every field</span>`
+    + `<button class="downloadBtn" id="csvBtn">↓ Download as CSV</button>`;
   document.getElementById("csvBtn").onclick = () => downloadCsv(rows);
 }
 
@@ -931,9 +931,9 @@ function buildMethodsPanel() {
     + `<tr><td>Related-party / special relationship</td><td class="num">${d.relatedPartyDeal.toLocaleString()}</td></tr>`
     + `<tr><td>Unpermitted additions noted</td><td class="num">${d.hasAddition.toLocaleString()}</td></tr>`
     + `<tr><td>Cancelled contracts</td><td class="num">${d.cancelledDeal.toLocaleString()}</td></tr></table>`
-    + `<p class="muted">Exclude these from any view with the sidebar "Exclude deals" chips.</p>`;
+    + `<p class="muted">These are flagged in the raw records so you can spot them. They're a small slice of all deals.</p>`;
   if (s.moran) html += `<h3>Spatial clustering</h3><p class="muted">District sale unit price has Moran's I = <b>${s.moran.I}</b> `
-    + `(p=${s.moran.p}, n=${s.moran.n}) — strong, significant positive spatial autocorrelation. Tick "Price clusters (LISA)" to map hot/cold spots.</p>`;
+    + `(p=${s.moran.p}, n=${s.moran.n}), so there's strong positive spatial autocorrelation — pricey districts cluster next to other pricey ones. Pick "Price clusters" from the Colour-by menu to see the hot and cold spots.</p>`;
   if (s.hedonic) html += `<h3>Hedonic price model</h3><p class="muted">OLS on log(dwelling price, net of parking), sale housing `
     + `(n=${s.hedonic.n.toLocaleString()}, R²=${s.hedonic.r2}). Approx. % effect on price, holding the other factors + building type + city constant `
     + `(parking is the amenity premium, not the parking space's own cost):</p>`
@@ -999,7 +999,7 @@ function renderHeader() {
   const s = store.summary;
   const [y0] = s.period.minDate.split("-"), [y1] = s.period.maxDate.split("-");
   document.getElementById("subtitle").textContent =
-    `Every housing sale in Taiwan, ${y0}–${y1} — cleaned, translated, and free to download.`;
+    `Housing sales across Taiwan from ${y0} to ${y1}, cleaned up from the government registry and free to download.`;
   // Advertise the number you actually hand over: housing sales, land-only/parking-only
   // excluded (the same total the map and downloads use), NOT the raw transaction count.
   const ht = s.housingTotals || s.totals;
@@ -1009,9 +1009,9 @@ function renderHeader() {
     + `<div class="stat"><b>${s.cities.length}</b><span>Cities/Counties</span></div>`
     + `<div class="stat"><b>${s.districts.length}</b><span>Districts</span></div>`;
   document.getElementById("dataNote").innerHTML =
-    "Housing aggregates exclude land-only and parking-only transactions. "
-    + "Most volume falls in the current release window; earlier transaction dates "
-    + "populate the time series. Source: Ministry of the Interior LVR open data.";
+    "These housing numbers leave out land-only and parking-only deals. "
+    + "The newest months undercount a bit, since sales get disclosed in batches with a lag. "
+    + "Source: Ministry of the Interior LVR open data.";
 }
 
 async function init() {
