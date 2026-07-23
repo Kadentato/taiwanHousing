@@ -413,21 +413,35 @@ function renderHouses() {
   const [lon, lat] = feat.geometry.coordinates;
   const metric = METRIC[state.metric === "count" ? "unit" : state.metric];
   const bins = quantileBins(metric.values(rs));
-  const R = 0.014;                                   // ~1.4 km jitter radius, in degrees
   const cosLat = Math.cos(lat * Math.PI / 180) || 1;
+  // The un-geocoded sales need an approximate position. Piling them into a disc at the district
+  // centroid reads as a conspicuous "circle" of dots in a city that's mostly geocoded. Instead,
+  // when we have a real footprint to borrow from (enough geocoded points), scatter each
+  // un-geocoded dot near a real address in the same district, so it blends into the true shape.
+  // Districts with (almost) no geocoding fall back to a spread around the centroid.
+  const realPts = [];
+  for (const r of rs) if (r.lat != null && r.lon != null) realPts.push([r.lat, r.lon]);
+  const scatterToReal = realPts.length >= 8;
+  const CENTROID_R = 0.014;   // ~1.4 km centroid spread (used only where nothing is geocoded)
+  const NEAR_R = 0.0022;      // ~220 m jitter around a borrowed real address
 
   const radius = rs.length > 20000 ? 2.5 : rs.length > 5000 ? 3.2 : 4;
   let realN = 0;
   const pts = rs.map((r, i) => {
     const v = metric.val(r);
-    // Real geocoded coordinate (門牌 address point) where we have it; else a deterministic jitter.
     let plat, plon;
     if (r.lat != null && r.lon != null) {
       plat = r.lat; plon = r.lon; realN++;
     } else {
       const angle = 2 * Math.PI * ((i * 0.6180339887) % 1);
-      const rad = R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
-      plat = lat + rad * Math.sin(angle); plon = lon + rad * Math.cos(angle) / cosLat;
+      if (scatterToReal) {
+        const base = realPts[Math.floor(((i * 0.6180339887) % 1) * realPts.length)];
+        const rad = NEAR_R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
+        plat = base[0] + rad * Math.sin(angle); plon = base[1] + rad * Math.cos(angle) / cosLat;
+      } else {
+        const rad = CENTROID_R * Math.sqrt((i * 0.7548776662 + 0.13) % 1);
+        plat = lat + rad * Math.sin(angle); plon = lon + rad * Math.cos(angle) / cosLat;
+      }
     }
     return { lat: plat, lon: plon, color: v == null ? NO_DATA : colorFor(v, bins), rec: r };
   });
@@ -435,9 +449,12 @@ function renderHouses() {
   updateLegend(bins, metric,
     `${rs.length.toLocaleString()} individual ${state.type} homes · click a dot for details, `
     + `coloured by ${metric.short} · `
-    + (realN
-        ? `${Math.round(realN / rs.length * 100)}% placed at their real address (門牌 geocoded), the rest jittered`
-        : `positions jittered within the district (no exact addresses in the open data)`));
+    + (realN === rs.length
+        ? `every dot at its real address (門牌 geocoded)`
+        : realN
+            ? `${Math.round(realN / rs.length * 100)}% at their real address (門牌 geocoded); `
+              + `the rest ${scatterToReal ? "scattered among them" : "spread near the district centre"}`
+            : `positions spread within the district (no exact addresses in the open data)`));
 }
 
 // Popup for a single transaction (individual house drill-in).
@@ -821,7 +838,6 @@ function setView(view) {
 function renderAll() {
   state.page = 0;   // filter/view changes reset paging; sort & pager call renderTable directly
   renderStats();
-  renderDataCard();
   if (state.view === "table") { renderTable(); return; }
   renderMap();
   renderChart();
@@ -839,39 +855,6 @@ function buildCityScope() {
   const sel = document.getElementById("cityScope");
   sel.innerHTML = '<option value="">All cities</option>'
     + store.summary.cities.map((c) => `<option value="${c.cityCode}">${c.nameEn}</option>`).join("");
-}
-
-// "Take the data further" — the point of the site is to hand the dataset over, not to be an
-// exhaustive filter UI. Offer the exact slice being looked at, plus the fuller sources.
-function renderDataCard() {
-  const host = document.getElementById("dataLinks");
-  if (!host) return;
-  const drilled = state.scopeDistrict && store.records.length;
-  const rows = drilled ? filteredRecords() : [];
-  const item = (icon, label, sub) =>
-    `<span class="dlIcon">${icon}</span><span><b>${label}</b><small>${sub}</small></span>`;
-
-  let html = "";
-  if (drilled) {
-    html += `<button class="dataLink" id="dlDistrict">`
-      + item("↓", `This district as CSV`,
-             `${rows.length.toLocaleString()} sales · every field shown in the table`) + `</button>`;
-  } else {
-    html += `<div class="dataLink muted">`
-      + item("↓", "This district as CSV", "Click a district on the map to enable") + `</div>`;
-  }
-  html += `<a class="dataLink" href="dataFiles/marketSeriesMonthly.csv" download>`
-    + item("↓", "Monthly price series as CSV",
-           "Every city, every month, 2012→now · nominal + inflation-adjusted") + `</a>`;
-  html += `<a class="dataLink" href="database.html">`
-    + item("▸", "Query it in SQL, in your browser",
-           "The database with every table and column — no install") + `</a>`;
-  html += `<a class="dataLink" href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener">`
-    + item("▸", "Full dataset &amp; the code that built it",
-           "3.4M sales, the pipeline, and the data dictionary") + `</a>`;
-  host.innerHTML = html;
-  const btn = document.getElementById("dlDistrict");
-  if (btn) btn.onclick = () => downloadCsv(rows);
 }
 
 // Manual navigation (toggles/dropdowns) is a fresh start: drop the drill stack

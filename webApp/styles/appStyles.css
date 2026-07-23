@@ -154,23 +154,6 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 .statRow b { font-weight: 650; }
 .dataNote { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
-/* "Take the data further" — the site's main call to action, so it gets real presence. */
-.dataCard { margin-bottom: 16px; border: 1px solid var(--accent-soft); border-radius: 10px; padding: 13px 14px;
-  background: linear-gradient(180deg, #eaf3ff 0%, #f8fafc 100%);
-  box-shadow: 0 1px 8px rgba(37,99,235,.08); }
-.dataCard h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); }
-.dataCardIntro { margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
-.dataLinks { display: flex; flex-direction: column; gap: 6px; }
-.dataLink { display: flex; align-items: flex-start; gap: 9px; width: 100%; text-align: left;
-  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff;
-  font: inherit; font-size: 12px; color: var(--ink); text-decoration: none; cursor: pointer;
-  transition: border-color .12s, box-shadow .12s, transform .12s; }
-.dataLink:hover { border-color: var(--accent); box-shadow: 0 1px 6px rgba(37,99,235,.12); transform: translateY(-1px); }
-.dataLink.muted { opacity: .55; cursor: default; pointer-events: none; }
-.dataLink b { display: block; font-weight: 600; line-height: 1.35; }
-.dataLink small { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); line-height: 1.45; }
-.dlIcon { flex: none; width: 18px; height: 18px; border-radius: 5px; background: var(--accent); color: #fff;
-  display: grid; place-items: center; font-size: 11px; line-height: 1; margin-top: 1px; }
 .dbDownload {
   display: block; margin-top: 12px; padding: 9px 12px; text-align: center;
   border: 1px solid var(--line); border-radius: 8px; background: #f8fafc;
