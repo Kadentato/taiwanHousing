@@ -155,8 +155,9 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 .dataNote { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
 /* "Take the data further" — the site's main call to action, so it gets real presence. */
-.dataCard { margin-top: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
-  background: linear-gradient(180deg, #f0f7ff 0%, #f8fafc 100%); }
+.dataCard { margin-bottom: 16px; border: 1px solid var(--accent-soft); border-radius: 10px; padding: 13px 14px;
+  background: linear-gradient(180deg, #eaf3ff 0%, #f8fafc 100%);
+  box-shadow: 0 1px 8px rgba(37,99,235,.08); }
 .dataCard h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--accent); }
 .dataCardIntro { margin: 0 0 10px; font-size: 11.5px; line-height: 1.5; color: var(--muted); }
 .dataLinks { display: flex; flex-direction: column; gap: 6px; }

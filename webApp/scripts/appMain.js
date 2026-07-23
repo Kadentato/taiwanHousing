@@ -689,7 +689,7 @@ function renderStats() {
       + row("Median total price", fmt(aggMetric(feat, "total"), METRIC.total))
       + row("Median living size", fmt(aggMetric(feat, "ping"), METRIC.ping));
   } else {
-    html += row("Transactions (n)", (store.summary.totals[state.type] || 0).toLocaleString())
+    html += row("Housing sales (n)", ((store.summary.housingTotals || store.summary.totals)[state.type] || 0).toLocaleString())
       + note("Nationwide — pick a city or district for a median (the national mix spans very different markets).");
   }
   html += note("Click a district on the map for its individual transactions, IQR and 95% CI.");
@@ -742,7 +742,7 @@ function renderTable() {
   if (!(state.scopeDistrict && store.records.length)) {
     document.querySelector("#dataTable thead").innerHTML = "";
     document.querySelector("#dataTable tbody").innerHTML =
-      `<tr><td colspan="15" style="padding:44px 16px;text-align:center;color:#64748b;font-size:13px">Click a district on the map to load its individual transactions here — the full set, not a sample.</td></tr>`;
+      `<tr><td colspan="15" style="padding:44px 16px;text-align:center;color:#64748b;font-size:13px">Click a district on the map to preview its sales here — every field, the full set (not a sample). Then take the whole slice as a CSV.</td></tr>`;
     document.getElementById("tablePager").innerHTML = "";
     document.getElementById("viewBarRight").innerHTML = "";
     return;
@@ -784,8 +784,8 @@ function renderTable() {
   document.getElementById("pageNext").onclick = () => { state.page++; renderTable(); };
 
   document.getElementById("viewBarRight").innerHTML =
-    `<span>${rows.length.toLocaleString()} records (${state.type})</span>`
-    + `<button class="downloadBtn" id="csvBtn">Download CSV</button>`;
+    `<span>Previewing all ${rows.length.toLocaleString()} sales — every field is in the file</span>`
+    + `<button class="downloadBtn" id="csvBtn">↓ Download this slice (CSV)</button>`;
   document.getElementById("csvBtn").onclick = () => downloadCsv(rows);
 }
 
@@ -1014,11 +1014,15 @@ async function loadData() {
 
 function renderHeader() {
   const s = store.summary;
+  const [y0] = s.period.minDate.split("-"), [y1] = s.period.maxDate.split("-");
   document.getElementById("subtitle").textContent =
-    `Taiwan actual-price registration · transaction dates ${s.period.minDate} → ${s.period.maxDate}`;
-  const total = s.totals.sale + s.totals.presale + s.totals.rental;
+    `Every housing sale in Taiwan, ${y0}–${y1} — cleaned, translated, and free to download.`;
+  // Advertise the number you actually hand over: housing sales, land-only/parking-only
+  // excluded (the same total the map and downloads use), NOT the raw transaction count.
+  const ht = s.housingTotals || s.totals;
+  const total = ht.sale + ht.presale + ht.rental;
   document.getElementById("headerStats").innerHTML =
-    `<div class="stat"><b>${total.toLocaleString()}</b><span>Transactions</span></div>`
+    `<div class="stat"><b>${total.toLocaleString()}</b><span>Housing sales</span></div>`
     + `<div class="stat"><b>${s.cities.length}</b><span>Cities/Counties</span></div>`
     + `<div class="stat"><b>${s.districts.length}</b><span>Districts</span></div>`;
   document.getElementById("dataNote").innerHTML =
