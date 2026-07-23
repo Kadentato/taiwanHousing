@@ -123,15 +123,23 @@
       <p>That's done for the five biggest metros, which between them are about half of every sale in the
       dataset:</p>
       <ul>
-        <li><b>New Taipei City</b> — 90% of its 646,843 sales placed (all 29 districts)</li>
-        <li><b>Taipei City</b> — 89% of 277,415 (all 12)</li>
-        <li><b>Taichung City</b> — 83% of 526,665 (all 29)</li>
-        <li><b>Taoyuan City</b> — 73% of 478,293 (all 13)</li>
-        <li><b>Tainan City</b> — 69% of 262,591 (30 of its 38 districts)</li>
+        <li><b>New Taipei City</b> — 90% of its 646,864 sales placed (all 29 districts)</li>
+        <li><b>Taipei City</b> — 89% of 277,423 (all 12)</li>
+        <li><b>Taichung City</b> — 83% of 526,641 (all 29)</li>
+        <li><b>Taoyuan City</b> — 73% of 478,294 (all 13)</li>
+        <li><b>Tainan City</b> — 74% of 262,603 (37 of its 38 districts)</li>
       </ul>
-      <p>That's <b>1,793,457 of 3,423,280 sales (52%)</b> at a real address. The ones that don't match are
-      usually addresses the doorplate file spells differently, or new builds that postdate it — those fall back
-      to the district centre.</p>
+      <p>That's <b>1,814,962 of 3,423,298 sales (53%)</b> at a real address. The ones that don't match are
+      usually addresses the doorplate file spells differently, are bare land/parcel entries with no street
+      address at all, or are new builds that postdate the doorplate file — those fall back to the district
+      centre.</p>
+      <p>Tainan is the trickiest of the five: outside the city core, a lot of homes are addressed by
+      <em>hamlet</em> (聚落) rather than a road — <code>臺南市山上區南洲343號</code> names the settlement
+      "南洲," not a street. The government's doorplate file carries those hamlet points too, in a separate
+      column, so the geocoder matches on the hamlet when there's no road — which is what lifts Tainan's rural
+      districts (七股, 後壁, 山上, 安定 and others) off the district centre and onto real buildings. Eight of
+      its districts used to sit entirely on their centre point; now only addresses the file genuinely lacks
+      do.</p>
       <p><b>Everywhere else — 16 cities and counties, 248 districts — every sale still sits on its district's
       centre point.</b> The reason is dull but real: the address data is published <em>per city and county</em>,
       each on its own portal in its own column layout, rather than as one national download. So every additional

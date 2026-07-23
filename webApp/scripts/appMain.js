@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=20";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=21";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 ping (坪) = 3.305785 m². Sizes shown in ping; the stored
                                 // unit price is per-m², so ×M2_PER_PING converts it to per-ping.
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws

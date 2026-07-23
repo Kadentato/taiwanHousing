@@ -39,25 +39,25 @@ FW = str.maketrans("０１２３４５６７８９", "0123456789")
 # only the header names differ. Add a county by appending an entry.
 COUNTY = {
     "a": {"id": "155472",  # 臺北市
-          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "lane": "巷", "alley": "弄",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "area": "地區", "lane": "巷", "alley": "弄",
                    "num": "號", "x": "橫座標", "y": "縱座標"}},
     "f": {"id": "168887",  # 新北市
-          "cols": {"code": "areacode", "road": "street、road、section", "lane": "lane",
+          "cols": {"code": "areacode", "road": "street、road、section", "area": "area", "lane": "lane",
                    "alley": "alley", "num": "number", "x": "x_3826", "y": "y_3826"}},
     "b": {"gdrive": "1Nl4xNrD2zxZSzzZAUUDZA31Ov8a72Q6P",  # 臺中市 (Google-Drive zip, WGS84 lat/lon)
-          "cols": {"code": "鄉鎮市區代碼", "road": "街_路段", "lane": "巷", "alley": "弄",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街_路段", "area": "地區", "lane": "巷", "alley": "弄",
                    "num": "號", "lat": "WGS84緯度", "lon": "WGS84經度"}},
     "h": {"tycg": "ec47dbd5-9ed8-4c8d-8ce1-ccb63b1b72e6",  # 桃園市 (Taoyuan portal, monthly TWD97 snapshots)
-          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "lane": "巷", "alley": "弄",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "area": "地區", "lane": "巷", "alley": "弄",
                    "num": "號", "x": "橫座標", "y": "縱座標"}},
     "d": {"url": "https://data.tainan.gov.tw/File/ResourceCsvDownload/af44f904-2f4c-49b2-aaf8-1a64dce09bd4",
-          "cols": {"code": "鄉鎮市區代碼", "road": "街、路段", "lane": "巷", "alley": "弄",  # 臺南市 114年 (TWD97)
-                   "num": "號", "x": "橫座標", "y": "縱座標"}},
+          "cols": {"code": "鄉鎮市區代碼", "road": "街、路段", "area": "地區",  # 臺南市 114年 (TWD97)
+                   "lane": "巷", "alley": "弄", "num": "號", "x": "橫座標", "y": "縱座標"}},
     # 高雄市: api.kcg.gov.tw service (slug {rocYear}-kh-address; TWD97, Taipei-schema columns). As of
     # 2026-07 the platform's data-reader backend returns a server-side 403 for ALL years — run once it
     # recovers: `python geocodeDoorplate.py e` (bump {rocYear} to the latest published).
     "e": {"url": "https://api.kcg.gov.tw/api/Service/Csv/115-kh-address",
-          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "lane": "巷", "alley": "弄",
+          "cols": {"code": "鄉鎮市區代碼", "road": "街路段", "area": "地區", "lane": "巷", "alley": "弄",
                    "num": "號", "x": "橫座標", "y": "縱座標"}},
 }
 _CTX = ssl.create_default_context()
@@ -122,7 +122,7 @@ def laneTok(s, marker):
 
 
 def buildIndex(code, cfg, townships, currentNames=None):
-    """Return (doormap, roadmap, districtNames) for a county.
+    """Return (doormap, roadmap, areamap, districtNames) for a county.
 
     ``currentNames`` = the city's up-to-date district names from the DB. The bundled
     township polygons can carry stale names (e.g. Taoyuan's pre-2014 中壢市/大溪鎮 vs the
@@ -163,25 +163,54 @@ def buildIndex(code, cfg, townships, currentNames=None):
     doormap = {k: (r.lat, r.lon) for k, r in dp.groupby("dk")[["lat", "lon"]].mean().iterrows()}
     roadmap = {f"{d}|{r}": (row.lat, row.lon)
                for (d, r), row in dp.groupby(["district", c["road"]])[["lat", "lon"]].mean().iterrows()}
-    return doormap, roadmap, set(dp["district"].unique())
+    # Outside the towns a house often has no road at all — it's addressed by its hamlet
+    # (the 地區 column), e.g. 臺南市山上區南洲343號. Index those separately.
+    ar = dp[dp[c["area"]].str.strip() != ""].copy()
+    ar["ak"] = ar["district"] + "|" + ar[c["area"]].str.strip() + "|" + ar["nm"]
+    areamap = {k: (r.lat, r.lon) for k, r in ar.groupby("ak")[["lat", "lon"]].mean().iterrows()}
+    return doormap, roadmap, areamap, set(dp["district"].unique())
 
 
-def geocode(addr, districts, doormap, roadmap):
+HOUSE_NUM = re.compile(r"(\d+)(?:[之\-]\d+)?號")
+LI = re.compile(r"^[一-鿿]{1,4}里")
+HAMLET = re.compile(r"^([一-鿿]{1,6}?)\d")
+
+
+def houseNo(rest):
+    """Pull the principal house number out of an LVR address tail.
+
+    LVR writes 353巷78之7號 and 97之3號; the doorplate file keeps only the principal
+    number (its ９７之３號 indexes as 97). Cut past any 巷/弄 token first, then take the
+    number *before* 號 rather than the 之N suffix — matching on the suffix is why
+    every 之-form address used to miss and fall back to the road centroid.
+    """
+    t = rest.split("弄", 1)[-1] if "弄" in rest else rest.split("巷", 1)[-1]
+    m = HOUSE_NUM.search(t)
+    return m.group(1) if m else ""
+
+
+def geocode(addr, districts, doormap, roadmap, areamap=None):
     n = addr.translate(FW)
-    dist = next((d for d in districts if d in n), None)
+    # Longest match wins: district names nest (南區 is a substring of 安南區), and picking
+    # whichever came first out of a set made the result depend on hash order.
+    dist = max((d for d in districts if d in n), key=len, default=None)
     if not dist:
         return (None, None)
     tail = n.split(dist, 1)[1]
     r = ROAD.search(tail)
-    if not r:
-        return (None, None)
-    road = r.group(1) + (r.group(2) or "")
-    rest = tail[r.end():]
-    ln = (re.search(r"([一-鿿\d]+?)巷", rest) or None)
-    al = (re.search(r"([一-鿿\d]+?)弄", rest) or None)
-    nm = (re.search(r"(\d+)號", rest) or None)
-    key = f"{dist}|{road}|{ln.group(1) if ln else ''}|{al.group(1) if al else ''}|{nm.group(1) if nm else ''}"
-    return doormap.get(key) or roadmap.get(f"{dist}|{road}", (None, None))
+    if r:
+        road = r.group(1) + (r.group(2) or "")
+        rest = tail[r.end():]
+        ln = (re.search(r"([一-鿿\d]+?)巷", rest) or None)
+        al = (re.search(r"([一-鿿\d]+?)弄", rest) or None)
+        key = f"{dist}|{road}|{ln.group(1) if ln else ''}|{al.group(1) if al else ''}|{houseNo(rest)}"
+        return doormap.get(key) or roadmap.get(f"{dist}|{road}", (None, None))
+    if areamap:  # no 路/街/大道 — try the hamlet form (optional leading 村里, then the place)
+        t = LI.sub("", tail)
+        m = HAMLET.match(t)
+        if m:
+            return areamap.get(f"{dist}|{m.group(1)}|{houseNo(t)}", (None, None))
+    return (None, None)
 
 
 KEEP = ["districtId", "transactionType", "targetType", "saleYear", "saleMonth", "totalPrice",
@@ -203,13 +232,13 @@ def main(argv):
         cid = conn.execute("SELECT cityId FROM cities WHERE fileCode=?", (code,)).fetchone()[0]
         currentNames = [r[0] for r in conn.execute(
             "SELECT nameZh FROM districts WHERE cityId=? AND nameZh IS NOT NULL", (cid,))]
-        doormap, roadmap, districts = buildIndex(code, COUNTY[code], townships, currentNames)
+        doormap, roadmap, areamap, districts = buildIndex(code, COUNTY[code], townships, currentNames)
         cols = ",".join(["houseId", *KEEP, "address"])
         h = pd.read_sql(f"SELECT {cols} FROM houses WHERE cityId={cid} AND transactionType='sale' "
                         "AND address IS NOT NULL", conn)
         h = h[h["targetType"].isin(HOUSING_TARGETS) & h["saleYear"].between(2012, 2026)].copy()
         h = anomalyFilter.dropAnomalies(h)   # same sale-anomaly drop as the exporter, for parity
-        g = [geocode(a, districts, doormap, roadmap) for a in h["address"]]
+        g = [geocode(a, districts, doormap, roadmap, areamap) for a in h["address"]]
         h["lat"] = [x[0] for x in g]
         h["lon"] = [x[1] for x in g]
         placedAll = h["lat"].notna().mean()
