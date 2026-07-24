@@ -930,15 +930,16 @@ function buildMrtLayer(fc) {
   // Own pane above the choropleth (600) but below the basemap labels (650) so place names stay legible.
   if (!map.getPane("mrt")) { map.createPane("mrt"); map.getPane("mrt").style.zIndex = 630; }
   const rnd = L.svg({ pane: "mrt" });
-  // White casing under each coloured line so it reads over the district fills and the dots.
+  // A wide white casing under each coloured line so the network stays clearly readable even over a
+  // drilled district's dense field of individual-sale dots (that's where the overlay matters most).
   const casing = L.geoJSON(lines, { pane: "mrt", renderer: rnd, interactive: false,
-    style: { color: "#ffffff", weight: 5, opacity: 0.75, lineJoin: "round", lineCap: "round" } });
+    style: { color: "#ffffff", weight: 7, opacity: 0.9, lineJoin: "round", lineCap: "round" } });
   const colored = L.geoJSON(lines, { pane: "mrt", renderer: rnd,
-    style: (f) => ({ color: f.properties.color, weight: 2.6, opacity: 0.95, lineJoin: "round", lineCap: "round" }),
+    style: (f) => ({ color: f.properties.color, weight: 3.8, opacity: 1, lineJoin: "round", lineCap: "round" }),
     onEachFeature: (f, l) => l.bindTooltip(f.properties.name, { sticky: true, direction: "top", className: "mapLabel" }) });
   const stops = L.geoJSON(stations, { pane: "mrt",
-    pointToLayer: (f, ll) => L.circleMarker(ll, { pane: "mrt", renderer: rnd, radius: 2.6,
-      color: "#334155", weight: 1, fillColor: "#ffffff", fillOpacity: 1 }),
+    pointToLayer: (f, ll) => L.circleMarker(ll, { pane: "mrt", renderer: rnd, radius: 3.2,
+      color: "#1f2937", weight: 1.4, fillColor: "#ffffff", fillOpacity: 1 }),
     onEachFeature: (f, l) => l.bindTooltip(f.properties.name, { direction: "top", className: "mapLabel" }) });
   return L.layerGroup([casing, colored, stops]);
 }
