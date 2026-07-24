@@ -161,6 +161,16 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 }
 .dbDownload:hover { background: var(--accent-soft); border-color: var(--accent); }
 
+/* MRT overlay toggle (a Leaflet control button, top-right) */
+.mrtToggle a {
+  display: block; padding: 0 9px; height: 28px;
+  font: 600 12px/28px system-ui, sans-serif; color: var(--ink);
+  background: #fff; text-decoration: none; white-space: nowrap;
+}
+.mrtToggle a:hover { background: #f1f5f9; }
+.mrtToggle a.active { background: var(--accent); color: #fff; }
+.mrtToggle a.active:hover { background: var(--accent); filter: brightness(1.06); }
+
 .mainArea { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .mapView { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .tableView { flex: 1; display: flex; flex-direction: column; min-height: 0; }

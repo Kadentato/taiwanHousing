@@ -23,8 +23,9 @@ housing sales from 2012 to 2026**.
 **🗺️ The map** — Prices by area, from the whole country down to single homes. Click from region to city to
 district, and for **Taipei, New Taipei, Taichung, Taoyuan and Tainan** the individual sales show up at their
 **real street addresses** (I geocoded them from the government's address data). Hover a dot to see that
-home's price, size, layout, age and features. There's also a time chart going back to 2012 and a records
-table you can sort and download as a CSV.
+home's price, size, layout, age and features. For Taipei and New Taipei there's also a toggle to lay the
+**MRT lines and stations** over the map, so you can eyeball prices against how close a place is to the metro.
+There's a time chart going back to 2012 and a records table you can sort and download as a CSV.
 
 **🔮 The price predictor** — Describe a home (where it is, how big, how old, its features) and you get an
 estimated price plus 50% / 80% / 95% ranges, so you can see how sure the model actually is. It's a

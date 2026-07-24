@@ -32,6 +32,7 @@ const state = {
   yearFrom: null, yearTo: null,   // transaction-year window (null = all)
   fixedScale: false,    // fixed vs adaptive colour bins
   colorMode: "metric",  // "metric" | "lisa"
+  showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
 };
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
@@ -62,12 +63,16 @@ const store = {
   summary: null,
   records: [],           // the CURRENTLY drilled district's full records (else empty)
   series: null,          // monthlyMarketSeries.json — full-data time series (national + per city)
+  mrt: null,             // taipeiMrt.geojson — lazily loaded when the MRT overlay is first shown
   geom: { city: new Map(), district: new Map() },
   cityByCode: new Map(),
   districtById: new Map(),
 };
 
 let map, dataLayer, legend, chart;
+let mrtLayer = null, mrtControl = null;
+// The MRT overlay is only meaningful for the two cities the Taipei metro serves.
+const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
 // ----------------------------------------------------------------- helpers ---
 const median = (arr) => quantile(arr, 0.5);
@@ -905,7 +910,78 @@ function renderAll() {
   renderStats();
   if (state.view === "table") { renderTable(); return; }
   renderMap();
+  updateMrtVisibility();
   renderChart();
+}
+
+// ----------------------------------------------------------- MRT overlay ---
+// Taipei metro lines + stations over the map, from OpenStreetMap (spatialAnalysis/fetchMrt.py).
+// Loaded lazily on first use; the button only appears when scoped to a city the metro serves.
+async function loadMrt() {
+  if (!store.mrt) store.mrt = await fetch(DATA + "taipeiMrt.geojson" + DATA_V).then((r) => r.json());
+  return store.mrt;
+}
+
+function buildMrtLayer(fc) {
+  const lineFeats = fc.features.filter((f) => f.properties.kind === "line");
+  const stationFeats = fc.features.filter((f) => f.properties.kind === "station");
+  const lines = { type: "FeatureCollection", features: lineFeats };
+  const stations = { type: "FeatureCollection", features: stationFeats };
+  // Own pane above the choropleth (600) but below the basemap labels (650) so place names stay legible.
+  if (!map.getPane("mrt")) { map.createPane("mrt"); map.getPane("mrt").style.zIndex = 630; }
+  const rnd = L.svg({ pane: "mrt" });
+  // White casing under each coloured line so it reads over the district fills and the dots.
+  const casing = L.geoJSON(lines, { pane: "mrt", renderer: rnd, interactive: false,
+    style: { color: "#ffffff", weight: 5, opacity: 0.75, lineJoin: "round", lineCap: "round" } });
+  const colored = L.geoJSON(lines, { pane: "mrt", renderer: rnd,
+    style: (f) => ({ color: f.properties.color, weight: 2.6, opacity: 0.95, lineJoin: "round", lineCap: "round" }),
+    onEachFeature: (f, l) => l.bindTooltip(f.properties.name, { sticky: true, direction: "top", className: "mapLabel" }) });
+  const stops = L.geoJSON(stations, { pane: "mrt",
+    pointToLayer: (f, ll) => L.circleMarker(ll, { pane: "mrt", renderer: rnd, radius: 2.6,
+      color: "#334155", weight: 1, fillColor: "#ffffff", fillOpacity: 1 }),
+    onEachFeature: (f, l) => l.bindTooltip(f.properties.name, { direction: "top", className: "mapLabel" }) });
+  return L.layerGroup([casing, colored, stops]);
+}
+
+async function setMrt(on) {
+  state.showMrt = on;
+  if (mrtControl && mrtControl._btn) mrtControl._btn.classList.toggle("active", on);
+  if (on) {
+    try {
+      if (!mrtLayer) mrtLayer = buildMrtLayer(await loadMrt());
+      if (!map.hasLayer(mrtLayer)) mrtLayer.addTo(map);
+    } catch (e) { console.error("MRT overlay failed to load", e); }
+  } else if (mrtLayer && map.hasLayer(mrtLayer)) {
+    mrtLayer.remove();
+  }
+}
+
+function addMrtControl() {
+  const ctrl = L.control({ position: "topright" });
+  ctrl.onAdd = () => {
+    const div = L.DomUtil.create("div", "leaflet-bar mrtToggle");
+    const b = L.DomUtil.create("a", state.showMrt ? "active" : "", div);
+    b.href = "#"; b.innerHTML = "🚇 MRT"; b.title = "Show / hide the Taipei metro lines";
+    L.DomEvent.on(b, "click", (e) => { L.DomEvent.preventDefault(e); L.DomEvent.stop(e); setMrt(!state.showMrt); });
+    ctrl._btn = b;
+    return div;
+  };
+  ctrl.addTo(map);
+  ctrl.getContainer().style.display = "none";   // hidden until the scope is a metro city
+  mrtControl = ctrl;
+}
+
+// Show the toggle only for Taipei / New Taipei, and keep the lines off the map elsewhere
+// (they'd otherwise sit as a tangle over the wrong city at the national view).
+function updateMrtVisibility() {
+  if (!mrtControl) return;
+  const relevant = MRT_CITIES.has(state.scopeCity);
+  mrtControl.getContainer().style.display = relevant ? "" : "none";
+  if (relevant && state.showMrt) {
+    if (!mrtLayer || !map.hasLayer(mrtLayer)) setMrt(true);
+  } else if (mrtLayer && map.hasLayer(mrtLayer)) {
+    mrtLayer.remove();
+  }
 }
 
 // --------------------------------------------------------------- controls ---
@@ -1116,6 +1192,7 @@ async function init() {
   try {
     await loadData();
     renderHeader();
+    addMrtControl();
     wireControls();
     wireStatControls();
     syncControls();
