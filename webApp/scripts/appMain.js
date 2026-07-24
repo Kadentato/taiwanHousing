@@ -4,7 +4,7 @@
  * map and the time chart from a single source of truth (the records). */
 
 const DATA = "dataFiles/";
-const DATA_V = "?v=21";  // bump on rebuild so browsers refetch updated data files
+const DATA_V = "?v=22";  // bump on rebuild so browsers refetch updated data files
 const M2_PER_PING = 3.305785;   // 1 ping (坪) = 3.305785 m². Sizes shown in ping; the stored
                                 // unit price is per-m², so ×M2_PER_PING converts it to per-ping.
 // The map uses the canvas renderer (fast for thousands of point markers), but canvas draws
@@ -612,45 +612,110 @@ function renderTimeChart() {
   });
 }
 
-// District drill-down: a strip plot of the individual transactions positioned by
-// the metric value (a real axis) — replaces the earlier invented map coordinates.
+// Compact axis-tick formatter (200000 -> "200k", 8_000_000 -> "8M").
+const kShort = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return +(v / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+  if (a >= 1e3) return Math.round(v / 1e3) + "k";
+  return "" + Math.round(v);
+};
+
+// Draws the median / Q1 / Q3 as vertical guide lines over the histogram bars. Done as a
+// tiny inline plugin (not extra line datasets) so the bar width isn't thrown off by stray
+// points at the quartile x-positions.
+const quartileGuides = {
+  id: "quartileGuides",
+  afterDatasetsDraw(c, _args, opts) {
+    const xs = c.scales.x, area = c.chartArea, ctx = c.ctx;
+    ctx.save();
+    for (const m of (opts.marks || [])) {
+      if (m.x == null) continue;
+      const px = xs.getPixelForValue(m.x);
+      if (px < area.left - 0.5 || px > area.right + 0.5) continue;
+      ctx.beginPath();
+      ctx.setLineDash(m.dash || []);
+      ctx.lineWidth = m.dash ? 1 : 1.5;
+      ctx.strokeStyle = m.color;
+      ctx.moveTo(px, area.top); ctx.lineTo(px, area.bottom); ctx.stroke();
+      if (m.label) {
+        ctx.setLineDash([]); ctx.fillStyle = m.color; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+        ctx.fillText(m.label, Math.min(Math.max(px, area.left + 18), area.right - 18), area.top + 9);
+      }
+    }
+    ctx.restore();
+  },
+};
+
+// District drill-down: a histogram of the individual sales over the chosen metric, with the
+// median / Q1 / Q3 marked. The x-axis is clipped to a robust window (a Tukey 3×IQR fence) so a
+// few genuine extreme sales — a record penthouse, say — don't squash everything else into one
+// bar; those get folded into the end bars so every sale is still counted.
 function renderDistributionChart() {
   const metric = METRIC[state.metric === "count" ? "unit" : state.metric];
   const rs = filteredRecords();
-  const pts = rs.map((r) => ({ v: metric.val(r), r })).filter((d) => d.v != null);
-  const med = quantile(pts.map((d) => d.v), 0.5);
-  const q1 = quantile(pts.map((d) => d.v), 0.25), q3 = quantile(pts.map((d) => d.v), 0.75);
-
+  const vals = rs.map((r) => metric.val(r)).filter((v) => v != null).sort((a, b) => a - b);
+  const n = vals.length;
   document.getElementById("chartTitle").textContent = `${scopeLabel()} — ${metric.short} distribution`;
-  document.getElementById("chartHint").textContent =
-    `${pts.length} transactions · median ${med != null ? metric.fmt(med) : "—"}`
-    + (q1 != null ? ` · IQR ${metric.fmt(q1)}–${metric.fmt(q3)}` : "") + " · each dot is one deal";
+  if (!n) {
+    document.getElementById("chartHint").textContent = "no priced sales in this selection";
+    if (chart) { chart.destroy(); chart = null; }
+    return;
+  }
+  const med = quantile(vals, 0.5), q1 = quantile(vals, 0.25), q3 = quantile(vals, 0.75);
+  const iqr = q3 - q1;
+  let lo = Math.max(vals[0], q1 - 3 * iqr);
+  let hi = Math.min(vals[n - 1], q3 + 3 * iqr);
+  if (!(hi > lo)) { lo = vals[0]; hi = vals[n - 1] > vals[0] ? vals[n - 1] : vals[0] + 1; }
 
-  const vline = (x) => x == null ? [] : [{ x, y: 0 }, { x, y: 1 }];
+  const BINS = Math.max(8, Math.min(36, Math.round(Math.sqrt(n))));
+  const width = (hi - lo) / BINS || 1;
+  const counts = new Array(BINS).fill(0);
+  let under = 0, over = 0;
+  for (const v of vals) {
+    if (v < lo) { under++; continue; }
+    if (v > hi) { over++; continue; }
+    let b = Math.floor((v - lo) / width);
+    if (b >= BINS) b = BINS - 1;
+    counts[b] += 1;
+  }
+  counts[0] += under;              // fold the clipped tails into the end bars so the bars
+  counts[BINS - 1] += over;        // still sum to every sale, not just the ones on-axis
+  const bars = counts.map((c, i) => ({ x: lo + (i + 0.5) * width, y: c }));
+  const maxC = Math.max(1, ...counts);
+  const clipped = under + over;
+
+  document.getElementById("chartHint").textContent =
+    `${n.toLocaleString()} sales · median ${metric.fmt(med)} · IQR ${metric.fmt(q1)}–${metric.fmt(q3)}`
+    + (clipped ? ` · ${clipped.toLocaleString()} extreme ${clipped === 1 ? "sale" : "sales"} folded into the end bars` : "");
+
   chart = new Chart(document.getElementById("timeChart"), {
+    plugins: [quartileGuides],
     data: {
       datasets: [
-        { type: "scatter", label: "Transactions",
-          // deterministic golden-ratio y so points don't reshuffle on re-render
-          data: pts.map((d, i) => ({ x: d.v, y: ((i * 0.618033988749895) % 1) * 0.8 + 0.1, rec: d.r })),
-          pointRadius: 3, backgroundColor: "rgba(37,127,184,0.55)", borderWidth: 0 },
-        { type: "line", label: "Median", data: vline(med), borderColor: "#dc2626", borderWidth: 1.5, pointRadius: 0 },
-        { type: "line", label: "Q1", data: vline(q1), borderColor: "#94a3b8", borderWidth: 1, borderDash: [4, 3], pointRadius: 0 },
-        { type: "line", label: "Q3", data: vline(q3), borderColor: "#94a3b8", borderWidth: 1, borderDash: [4, 3], pointRadius: 0 },
+        { type: "bar", label: "Sales", data: bars, parsing: false, grouped: false,
+          backgroundColor: "rgba(37,127,184,0.65)", borderWidth: 0,
+          barPercentage: 1, categoryPercentage: 1 },
       ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { title: { display: true, text: metric.short + (metric.unit ? " (" + metric.unit + ")" : "") }, beginAtZero: false },
-        y: { min: 0, max: 1, display: false },
+        x: { type: "linear", min: lo, max: hi, offset: false,
+          title: { display: true, text: metric.short + (metric.unit ? " (" + metric.unit + ")" : "") },
+          ticks: { maxTicksLimit: 10, font: { size: 10 }, callback: (v) => kShort(v) } },
+        y: { min: 0, suggestedMax: maxC, beginAtZero: true, title: { display: true, text: "number of sales" } },
       },
       plugins: {
-        legend: { labels: { boxWidth: 12, font: { size: 11 }, filter: (i) => i.text !== "Q1" && i.text !== "Q3" } },
-        tooltip: { callbacks: { label: (ctx) => {
-          const r = ctx.raw.rec; if (!r) return "";
-          return `${pretty(r.buildingType) || "Property"} · ${metric.fmt(ctx.raw.x)} · ${r.bedrooms ?? "?"}bd/${r.bathrooms ?? "?"}ba · ${monthStr(r)}`;
-        } } },
+        legend: { display: false },
+        quartileGuides: { marks: [
+          { x: q1, color: "#94a3b8", dash: [4, 3] },
+          { x: q3, color: "#94a3b8", dash: [4, 3] },
+          { x: med, color: "#dc2626", label: "median" },
+        ] },
+        tooltip: { callbacks: {
+          title: (items) => `${metric.fmt(items[0].raw.x - width / 2)} – ${metric.fmt(items[0].raw.x + width / 2)}`,
+          label: (ctx) => `${ctx.raw.y.toLocaleString()} sales`,
+        } },
       },
     },
   });

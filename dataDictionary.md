@@ -111,7 +111,7 @@ for **sales** over the full history (101S3–115S2 / 2012 Q3 – 2026 Q2).
 | 2 | De-duplicate | The same deal re-appears across overlapping quarterly releases; keep one per serial number (`編號`) | 4,825,329 | 4,810,276 | 15,053 (0.3%) |
 | 3 | Housing filter | Drop **land-only** (土地) and **parking-only** (車位) transactions; keep building/house sales | 4,810,276 | 3,493,822 | 1,316,454 (27%) |
 | 4 | Date sanity | Drop missing/impossible dates; keep 2012 → present | 3,493,822 | 3,484,620 | ~9k (0.2%) |
-| 5 | Value & layout sanity | Drop sale records whose numbers can't be a real single home (see below) | 3,484,620 | 3,412,743 | 71,877 (2.06%) |
+| 5 | Value & layout sanity | Drop sale records whose numbers can't be a real single home (see below) | 3,484,620 | 3,409,482 | 75,138 (2.15%) |
 
 So the cleaning removes **one big, deliberate slice** (land/parking, 27%) and then ~2% of genuine
 data-quality junk. A city's monthly sale volume is essentially untouched.
@@ -120,6 +120,10 @@ data-quality junk. A city's monthly sale volume is essentially untouched.
 with 5 bedrooms and 4 bathrooms."* Auditing every sale surfaced a small tail where the government's raw
 fields are internally inconsistent, so we drop a row if **any** of these hold (`dataPipeline/anomalyFilter.py`):
 - **unit price** outside NT$5,000–3,000,000 /m² (data-entry price typos);
+- **living area too small to be a dwelling** — under ~10 m²; a 1–3 m² "sale" is a parking bay, storage
+  unit or a mis-recorded area, not a home. These carry no bedrooms, so the fit/density rules below (which
+  need ≥ 1 bedroom) miss them, and they were surfacing as extreme unit-price outliers in the drill-in
+  histogram;
 - **absurd room counts** — more than 12 bedrooms, 10 bathrooms, or 18 bed+bath together (a single home,
   not a whole apartment block sold as one deal);
 - **layout can't physically fit the area** — living area below a bare floor of *5 m²/bedroom +
@@ -130,8 +134,8 @@ fields are internally inconsistent, so we drop a row if **any** of these hold (`
   ~13–15 m²/room, well clear of the cut, so normal stock is untouched.
 
 This runs across the **whole site and the model** (not just the model), so the records table, the drill-in
-distribution, the medians and the predictor all exclude impossible rows. It removes **71,877 sales
-(2.06%)**; the map's area medians barely move (they were already robust to outliers), but the individual
+distribution, the medians and the predictor all exclude impossible rows. It removes **75,138 sales
+(2.15%)**; the map's area medians barely move (they were already robust to outliers), but the individual
 dots and totals are now clean.
 
 **Nothing is sampled — the whole site is the full cleaned dataset.**

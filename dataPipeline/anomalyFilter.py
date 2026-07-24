@@ -18,6 +18,10 @@ Two families of anomaly are removed:
   Tier 1 — impossible (cannot be a real single home)
     * unit price outside NT$5,000–3,000,000 /m²  (data-entry price typos)
     * absurd room counts (>12 bedrooms, >10 bathrooms, or >18 bed+bath together)
+    * living area below a habitable minimum (~10 m²): a 1-3 m² "home" is a parking bay,
+      a storage unit or a mis-recorded area, not a dwelling. The fit rules below only fire
+      when there's >= 1 bedroom, so these zero-room slivers slipped through and showed up as
+      extreme unit-price outliers in the drill-in distribution.
     * the layout can't physically fit: living area below a rock-bottom floor of
       5 m²/bedroom + 2.5 m²/bathroom (bare minimums, no kitchen/hallway allowance)
 
@@ -36,6 +40,8 @@ M2_PER_PING = 3.305785
 
 # price band (per m²) — matches the model's own sanity bounds
 PRICE_LO, PRICE_HI = 5_000, 3_000_000
+# smallest living area (m²) that can be a real dwelling; below this it's parking/storage/typo
+MIN_DWELLING_M2 = 10.0
 # room-count ceilings for a single dwelling
 MAX_BEDROOMS, MAX_BATHROOMS, MAX_ROOMS = 12, 10, 18
 # minimum floor area (m²) a layout needs: bare-physical (Tier 1) and realistic (Tier 2)
@@ -54,11 +60,12 @@ def anomalyMask(df: pd.DataFrame) -> pd.Series:
 
     extremePrice = up.notna() & ((up < PRICE_LO) | (up > PRICE_HI))
     absurdRooms = (bd > MAX_BEDROOMS) | (ba > MAX_BATHROOMS) | ((bd + ba) > MAX_ROOMS)
+    tinyDwelling = area.notna() & (area < MIN_DWELLING_M2)
     cantFit = (bd >= 1) & (area < HARD_BEDROOM_M2 * bd + HARD_BATHROOM_M2 * ba)
     tooTight = (bd >= 1) & (area < SOFT_BASE_M2 + SOFT_BEDROOM_M2 * bd + SOFT_BATHROOM_M2 * ba)
     rooms = bd + ba
     tooDense = (rooms >= DENSE_MIN_ROOMS) & (area < DENSE_M2_PER_ROOM * rooms)
-    return (extremePrice | absurdRooms | cantFit | tooTight | tooDense).fillna(False)
+    return (extremePrice | absurdRooms | tinyDwelling | cantFit | tooTight | tooDense).fillna(False)
 
 
 def dropAnomalies(df: pd.DataFrame) -> pd.DataFrame:
