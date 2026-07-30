@@ -1234,17 +1234,17 @@ function renderHeader() {
 // The homepage (index.html) is a hub of questions; each links here with ?q=<key>, and we
 // open the map already configured to answer it. Also accepts ?metric=<key> for a raw metric.
 const QUESTION_PRESETS = {
-  price:    { metric: "unit",  title: "Where is housing most expensive?",
-              hint: "Median price per ping. Click a city, then a district, to reach individual homes." },
-  activity: { metric: "count", title: "Where do the most sales happen?",
-              hint: "Coloured by transaction count — the busiest markets versus the quiet ones." },
-  size:     { metric: "ping",  title: "Where are the biggest homes?",
-              hint: "Median living size by area, measured in ping." },
-  clusters: { lisa: true,      title: "Where are the hot & cold price zones?",
-              hint: "LISA clusters flag districts far pricier (red) or cheaper (blue) than their neighbours." },
+  price:    { metric: "unit",  title: "Where's the pricey stuff?",
+              hint: "Start with the whole island, then click a city and a district to reach individual sold homes." },
+  activity: { metric: "count", title: "Where's the market buzzing?",
+              hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones." },
+  size:     { metric: "ping",  title: "Where do you get room to breathe?",
+              hint: "Coloured by the median living size in each area, measured in ping." },
+  clusters: { lisa: true,      title: "Where are the hot and cold pockets?",
+              hint: "The map flags districts that are way pricier (red) or way cheaper (blue) than their neighbours." },
   mrt:      { question: "mrt", city: "a", mrt: true,
-              title: "Does living near the MRT cost more?",
-              hint: "Taipei is shown by price. Click a district to colour its homes by distance to the nearest station." },
+              title: "Does living near the MRT actually cost more?",
+              hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station." },
 };
 
 function setQuestionBanner(title, hint) {

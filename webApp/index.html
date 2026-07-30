@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Taiwan Housing Explorer — Ask the data a question</title>
-  <link rel="stylesheet" href="styles/appStyles.css?v=13" />
+  <title>Taiwan Housing Explorer — poke around the housing market</title>
+  <link rel="stylesheet" href="styles/appStyles.css?v=14" />
 </head>
 <body class="landingBody">
   <header class="appHeader">
     <div>
       <h1>Taiwan Housing Explorer</h1>
-      <p class="subtitle">3.5 million real property sales, 2012–2026 · built from Taiwan's open price registry</p>
+      <p class="subtitle">3.5 million real home sales — no login, no spreadsheets, nothing to install</p>
     </div>
     <div class="headerRight">
       <a class="headerLink" href="predictor.html">Price predictor ↗</a>
@@ -22,99 +22,106 @@
 
   <main class="landing">
     <div class="landingHero">
-      <h2>What do you want to know about Taiwan's housing?</h2>
-      <p>Pick a question below. Each one opens a map built to answer it — from the whole
-        country down to individual homes at their real street addresses.</p>
+      <span class="heyPill">👋 Hey — welcome in</span>
+      <h2>So, what do you want to know about <span class="accent">Taiwan's housing</span>?</h2>
+      <p>Every home sale the government publishes, cleaned up and dropped onto a map you can
+        actually click around. Pick whatever you're curious about —
+        <span class="wink">I've teed up a few of the good questions for you.</span></p>
     </div>
 
-    <div class="landingSectionLabel">Featured question</div>
+    <div class="landingSectionLabel">The one I'm most excited about</div>
     <div class="questionGrid">
       <a class="questionCard flagship" href="explorer.html?q=mrt">
-        <span class="qTag">New</span>
         <div class="qEmoji">🚇</div>
-        <h3>Does living near the MRT cost more?</h3>
-        <p>Every Taipei and New Taipei home coloured by how far it sits from the nearest metro
-          station, with the MRT lines laid over the top — so you can see the price of proximity.</p>
-        <div class="qGo">Open the map →</div>
+        <div class="qBody">
+          <span class="qTag">Start here</span>
+          <h3>Does living near the MRT actually cost more?</h3>
+          <p>Every Taipei and New Taipei home, coloured by how close it sits to the nearest metro
+            stop, with the lines laid right over the top. Spoiler: getting close to a station is
+            worth a <em>lot</em>.</p>
+          <div class="qGo">See for yourself →</div>
+        </div>
       </a>
     </div>
 
-    <div class="landingSectionLabel">Explore the market</div>
+    <div class="landingSectionLabel">The usual suspects</div>
     <div class="questionGrid">
-      <a class="questionCard" href="explorer.html?q=price">
+      <a class="questionCard qc-amber" href="explorer.html?q=price">
         <div class="qEmoji">💰</div>
-        <h3>Where is housing most expensive?</h3>
-        <p>Median price per ping across every city and district — click down from region to
-          single homes to see where Taiwan's costliest addresses are.</p>
-        <div class="qGo">Open the map →</div>
+        <h3>Where's the pricey stuff?</h3>
+        <p>Start with the whole island and keep clicking — region, city, district, right down to a
+          single sold home. See where the money actually is.</p>
+        <div class="qGo">Follow the money →</div>
       </a>
 
-      <a class="questionCard" href="explorer.html?q=activity">
+      <a class="questionCard qc-rose" href="explorer.html?q=activity">
         <div class="qEmoji">🔥</div>
-        <h3>Where do the most sales happen?</h3>
-        <p>Transaction counts by area — the busiest housing markets in the country, and the
-          quiet corners where almost nothing changes hands.</p>
-        <div class="qGo">Open the map →</div>
+        <h3>Where's the market buzzing?</h3>
+        <p>The neighbourhoods where homes change hands constantly — and the sleepy corners where
+          almost nothing ever sells.</p>
+        <div class="qGo">Take a look →</div>
       </a>
 
-      <a class="questionCard" href="explorer.html?q=size">
+      <a class="questionCard qc-teal" href="explorer.html?q=size">
         <div class="qEmoji">📐</div>
-        <h3>Where are the biggest homes?</h3>
-        <p>Median living size by district. See where space is plentiful versus where people
-          are paying top prices for very little floor area.</p>
-        <div class="qGo">Open the map →</div>
+        <h3>Where do you get room to breathe?</h3>
+        <p>Find the parts of Taiwan with genuinely big homes — and the places where you pay a
+          fortune for barely any floor space.</p>
+        <div class="qGo">Compare sizes →</div>
       </a>
 
-      <a class="questionCard" href="explorer.html?q=clusters">
+      <a class="questionCard qc-purple" href="explorer.html?q=clusters">
         <div class="qEmoji">🌡️</div>
-        <h3>Where are the hot &amp; cold price zones?</h3>
-        <p>A statistical hot-spot map (LISA clusters) that flags districts far pricier — or far
-          cheaper — than their neighbours, not just the raw numbers.</p>
-        <div class="qGo">Open the map →</div>
+        <h3>Where are the hot and cold pockets?</h3>
+        <p>The map flags neighbourhoods that are way pricier — or way cheaper — than everything
+          around them. Bargain-hunting, basically.</p>
+        <div class="qGo">Find the outliers →</div>
       </a>
     </div>
 
-    <div class="landingSectionLabel">Go deeper</div>
+    <div class="landingSectionLabel">Go a little deeper</div>
     <div class="questionGrid">
-      <a class="questionCard" href="predictor.html">
+      <a class="questionCard qc-violet" href="predictor.html">
         <div class="qEmoji">🔮</div>
-        <h3>What is a specific home worth?</h3>
-        <p>Describe a place — where, how big, how old, its features — and get an estimated
-          price with honest 50/80/95% ranges, all computed in your browser.</p>
-        <div class="qGo">Open the predictor →</div>
+        <h3>What's a specific place worth?</h3>
+        <p>Describe a home — where it is, how big, how old — and get a ballpark price that's
+          honest about how sure it actually is.</p>
+        <div class="qGo">Get an estimate →</div>
       </a>
 
-      <a class="questionCard" href="database.html">
+      <a class="questionCard qc-cyan" href="database.html">
         <div class="qEmoji">🔎</div>
-        <h3>Run your own query</h3>
-        <p>The full dataset loaded into your browser, with every table and column and an SQL
-          box — ask whatever the data can answer.</p>
-        <div class="qGo">Browse the database →</div>
+        <h3>Just give me the numbers</h3>
+        <p>The whole dataset, loaded right in your browser. Every table and column, plus a box to
+          run your own queries.</p>
+        <div class="qGo">Dig in →</div>
       </a>
     </div>
 
-    <div class="landingSectionLabel">Coming soon</div>
+    <div class="landingSectionLabel">Still cooking</div>
     <div class="questionGrid">
       <div class="questionCard soon">
         <div class="qEmoji">🏙️</div>
-        <h3>Do high-rise districts cost more?</h3>
-        <p>Comparing prices against building height and floor level. Needs the tower data
-          wired into the map — on the way.</p>
-        <div class="qGo">In progress</div>
+        <h3>Do the high-rises cost more?</h3>
+        <p>Sleek towers versus old walk-ups. I've already got the floor data — just need to wire
+          it onto the map.</p>
+        <div class="qGo">Almost there</div>
       </div>
 
       <div class="questionCard soon">
         <div class="qEmoji">🌏</div>
-        <h3>Does immigration track with prices?</h3>
-        <p>Overlaying district demographics against the market. Needs an outside dataset
-          sourced and joined first.</p>
-        <div class="qGo">Planned</div>
+        <h3>Does immigration move prices?</h3>
+        <p>Curious whether the two track together across districts. Still hunting down the right
+          dataset for it.</p>
+        <div class="qGo">On the wishlist</div>
       </div>
     </div>
 
     <p class="landingFoot">
-      All figures come straight from Taiwan's Actual Price Registration open data.
-      <a href="about.html">How this was built →</a>
+      Every number here is a real, reported home sale — straight from Taiwan's public property
+      registry. Nothing you click ever gets sent anywhere.
+      <span class="sig">I built this because I couldn't find a good version of it myself.
+        <a href="about.html">Here's how it works →</a></span>
     </p>
   </main>
 </body>
