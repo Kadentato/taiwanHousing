@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=13" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=16" />
 </head>
 <body>
   <header class="appHeader">
@@ -60,6 +60,7 @@
           <strong id="questionTitle"></strong>
           <span id="questionHint"></span>
         </div>
+        <button class="questionReadBtn" id="questionRead" type="button" title="How to read this map — and how it answers the question" aria-label="How to read this map" hidden>?</button>
         <button class="questionBannerClose" id="questionBannerClose" type="button" aria-label="Dismiss">×</button>
       </div>
       <div class="viewBar">
@@ -73,12 +74,16 @@
       <div id="mapView" class="mapView">
         <div id="map"></div>
         <div class="chartPanel" id="chartPanel">
-          <div class="chartHeader">
-            <h3 id="chartTitle">Market over time</h3>
-            <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/ping)</span>
-            <button class="chartCollapse" id="chartCollapse" type="button" title="Hide / show the chart">▾</button>
+          <button class="chartTab" id="chartCollapse" type="button" aria-expanded="true" title="Hide / show the chart">
+            <span class="chartTabTitle" id="chartTitle">Market over time</span>
+            <span class="chartTabChevron">▾</span>
+          </button>
+          <div class="chartBody">
+            <div class="chartHeader">
+              <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/ping)</span>
+            </div>
+            <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
           </div>
-          <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
         </div>
       </div>
 
@@ -98,8 +103,15 @@
     </div>
   </div>
 
+  <div id="interpretModal" class="modal" hidden>
+    <div class="modalCard">
+      <button class="modalClose" id="interpretClose" aria-label="Close">×</button>
+      <div id="interpretBody" class="prose"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=45"></script>
+  <script src="scripts/appMain.js?v=47"></script>
 </body>
 </html>

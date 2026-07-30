@@ -1102,8 +1102,16 @@ function wireControls() {
   };
   const bannerClose = document.getElementById("questionBannerClose");
   if (bannerClose) bannerClose.onclick = () => { document.getElementById("questionBanner").hidden = true; };
-  document.getElementById("chartCollapse").onclick = () => {
-    document.getElementById("chartPanel").classList.toggle("collapsed");
+  const readBtn = document.getElementById("questionRead");
+  if (readBtn) readBtn.onclick = () => {
+    if (!activeQuestionRead) return;
+    document.getElementById("interpretBody").innerHTML = activeQuestionRead;
+    document.getElementById("interpretModal").hidden = false;
+  };
+  document.getElementById("chartCollapse").onclick = (e) => {
+    const panel = document.getElementById("chartPanel");
+    const collapsed = panel.classList.toggle("collapsed");
+    e.currentTarget.setAttribute("aria-expanded", String(!collapsed));
     setTimeout(() => { map.invalidateSize(); if (chart) chart.resize(); }, 60);
   };
   // Esc zooms back out to the previous view (map view only).
@@ -1116,6 +1124,8 @@ function wireStatControls() {
   document.getElementById("methodsBtn").onclick = () => { buildMethodsPanel(); document.getElementById("methodsModal").hidden = false; };
   document.getElementById("methodsClose").onclick = () => { document.getElementById("methodsModal").hidden = true; };
   document.getElementById("methodsModal").addEventListener("click", (e) => { if (e.target.id === "methodsModal") e.currentTarget.hidden = true; });
+  document.getElementById("interpretClose").onclick = () => { document.getElementById("interpretModal").hidden = true; };
+  document.getElementById("interpretModal").addEventListener("click", (e) => { if (e.target.id === "interpretModal") e.currentTarget.hidden = true; });
 }
 
 // The map and stats always cover the FULL history (2012→latest); the year window is no longer a
@@ -1235,23 +1245,64 @@ function renderHeader() {
 // open the map already configured to answer it. Also accepts ?metric=<key> for a raw metric.
 const QUESTION_PRESETS = {
   price:    { metric: "unit",  title: "Where's the pricey stuff?",
-              hint: "Start with the whole island, then click a city and a district to reach individual sold homes." },
+              hint: "Start with the whole island, then click a city and a district to reach individual sold homes.",
+              read: `<h2>Reading the price map</h2>
+                <p>The map opens with one plain question — where does the money actually go? Every area is shaded by its <b>median price per ping</b>, so the darker a place runs, the more you're handing over for the same square of floor.</p>
+                <ul>
+                  <li><b>Drill in.</b> Start on the whole island, click a city, then a district, all the way down to the individual homes that sold. The colour scale re-fits itself at every level, so you never end up comparing one district against the entire country by accident.</li>
+                  <li><b>Per ping, not total.</b> A mansion and a studio can carry the same sticker price — one's just bigger. Per ping takes size out of it, which is why I lead with it; flip <b>Colour by</b> if you'd rather see the raw total.</li>
+                  <li><b>Look past the colour.</b> The <b>Records</b> tab is every sale behind a district, and the histogram at the bottom shows how tightly those prices bunch up — a wide spread means the median is hiding a lot.</li>
+                </ul>
+                <p>Follow the dark as you drill, and you've found where the money lives.</p>` },
   activity: { metric: "count", title: "Where's the market buzzing?",
-              hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones." },
+              hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones.",
+              read: `<h2>Reading the activity map</h2>
+                <p>Some neighbourhoods never stop changing hands; others sit quiet for years. This map is simply <b>how many homes actually sold</b> in each place — colour and bubble size climb together, so the busy markets are impossible to miss.</p>
+                <ul>
+                  <li><b>Drill into a city</b> to see which of its districts do the real volume.</li>
+                  <li><b>Watch it move.</b> Pop up the chart at the bottom and it's sales per month — the booms, the slumps, and the slow seasons in between.</li>
+                  <li><b>Busy isn't rich.</b> A market can be frantic and cheap at the same time. Flip <b>Colour by</b> to price and see for yourself — sometimes the busiest corner is the affordable one.</li>
+                </ul>` },
   size:     { metric: "ping",  title: "Where do you get room to breathe?",
-              hint: "Coloured by the median living size in each area, measured in ping." },
+              hint: "Coloured by the median living size in each area, measured in ping.",
+              read: `<h2>Reading the size map</h2>
+                <p>Price tells you what a home costs; this tells you what you actually get for it. Every area is shaded by its <b>median living size in ping</b> — darker means more room to breathe.</p>
+                <ul>
+                  <li><b>Hunt for value.</b> Flip <b>Colour by</b> between size and price. A district that stays dark for size but turns pale for price is exactly where your money buys the most floor.</li>
+                  <li><b>Get specific.</b> Drill in, open <b>Records</b>, and you'll find the real layouts — beds and baths — sitting behind that median.</li>
+                  <li>Living size already nets out the parking space, so it's genuine living room you're comparing, not garage.</li>
+                </ul>` },
   clusters: { lisa: true,      title: "Where are the hot and cold pockets?",
-              hint: "The map flags districts that are way pricier (red) or way cheaper (blue) than their neighbours." },
+              hint: "The map flags districts that are way pricier (red) or way cheaper (blue) than their neighbours.",
+              read: `<h2>Reading the hot-and-cold map</h2>
+                <p>This one isn't about price on its own — it's about a district against the company it keeps. The map asks a sharper question: is this place unusually pricey, or unusually cheap, <em>for where it sits</em>?</p>
+                <ul>
+                  <li><b>Red</b> is a huddle of expensive districts — a hot spot. <b>Blue</b> is a pocket of cheap ones. Faded means nothing statistically out of the ordinary.</li>
+                  <li>There's a real statistic underneath (a spatial one), so it throws out the noise and only flags patterns unlikely to be down to chance.</li>
+                  <li><b>Read the edges.</b> A blue district wedged between red ones is the underpriced pocket worth a closer look; a lone red one is a local peak, paying a premium for something.</li>
+                </ul>` },
   mrt:      { question: "mrt", city: "a", mrt: true,
               title: "Does living near the MRT actually cost more?",
-              hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station." },
+              hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station.",
+              read: `<h2>Reading the MRT map</h2>
+                <p>Everyone in Taipei has a hunch that living near the metro costs more — this map is where you get to actually test it. It comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
+                <ul>
+                  <li><b>Find your footing.</b> Taipei opens shaded by price. Click any district and every home inside it re-colours by <b>distance to the nearest MRT stop</b> — the palest dots are sitting right on top of a station, the deeper ones are a walk away.</li>
+                  <li><b>The lines are right there</b> on top of the map, so you can watch the dots hug them. Hover any dot for that exact home's distance and price.</li>
+                  <li><b>Prefer numbers?</b> The <b>Records</b> tab is every sale, and the histogram shows how that district's prices spread out.</li>
+                </ul>
+                <p>Set a dot beside a line against one a few blocks off and the pattern shows up fast: in Taipei, homes within about 250&nbsp;m of a station run roughly a third more per ping than the ones past 750&nbsp;m. The colour warms the moment you step away from the tracks.</p>` },
 };
+let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 
-function setQuestionBanner(title, hint) {
+function setQuestionBanner(preset) {
   const banner = document.getElementById("questionBanner");
   if (!banner) return;
-  document.getElementById("questionTitle").textContent = title;
-  document.getElementById("questionHint").textContent = hint || "";
+  document.getElementById("questionTitle").textContent = preset.title;
+  document.getElementById("questionHint").textContent = preset.hint || "";
+  activeQuestionRead = preset.read || null;
+  const readBtn = document.getElementById("questionRead");
+  if (readBtn) readBtn.hidden = !activeQuestionRead;
   banner.hidden = false;
 }
 
@@ -1277,7 +1328,7 @@ function applyUrlPreset() {
     state.showMrt = true;
     ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
   }
-  setQuestionBanner(preset.title, preset.hint);
+  setQuestionBanner(preset);
 }
 
 async function init() {

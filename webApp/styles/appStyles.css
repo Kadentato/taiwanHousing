@@ -128,12 +128,19 @@ details.collapsible > summary::after {
 details.collapsible[open] > summary::after { transform: rotate(90deg); }
 details.collapsible > *:not(summary) { margin-top: 9px; }
 
-/* Chart collapse toggle */
-.chartCollapse { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 16px; line-height: 1; margin-left: auto; padding: 0 2px; }
-.chartCollapse:hover { color: var(--ink); }
-.chartPanel.collapsed { height: auto; flex: 0 0 auto; }
-.chartPanel.collapsed .chartCanvasWrap, .chartPanel.collapsed .chartHint { display: none; }
-.chartPanel.collapsed .chartCollapse { transform: rotate(180deg); }
+/* Chart drawer — a clickable tab at the top pops the histogram up and down. */
+.chartTab {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; width: 100%;
+  border: none; border-bottom: 1px solid var(--line); background: #f8fafc;
+  padding: 9px 16px; cursor: pointer; font-family: inherit; text-align: left; color: var(--ink);
+}
+.chartTab:hover { background: #eef2f7; }
+.chartTabTitle { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.chartTabChevron { flex-shrink: 0; color: var(--muted); font-size: 13px; transition: transform .18s ease; }
+.chartPanel.collapsed .chartTab { border-bottom: none; }
+.chartPanel.collapsed .chartTabChevron { transform: rotate(180deg); }
+.chartBody { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 16px 12px; }
+.chartPanel.collapsed .chartBody { display: none; }
 .legend .legendSize { margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 6px; color: var(--muted); }
 
 .modal { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; z-index: 10001; padding: 20px; }
@@ -214,9 +221,9 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 }
 .tablePager button:disabled { opacity: .45; cursor: default; }
 
-.chartPanel { height: 240px; background: var(--panel); border-top: 1px solid var(--line); padding: 10px 16px 14px; display: flex; flex-direction: column; }
+.chartPanel { height: 250px; background: var(--panel); border-top: 1px solid var(--line); display: flex; flex-direction: column; transition: height .18s ease; }
+.chartPanel.collapsed { height: 39px; }
 .chartHeader { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
-.chartHeader h3 { margin: 0; font-size: 14px; }
 .chartHint { font-size: 11px; color: var(--muted); }
 .chartCanvasWrap { position: relative; flex: 1; min-height: 0; width: 100%; }
 #timeChart { position: absolute; inset: 0; }
@@ -431,9 +438,18 @@ body.landingBody {
   background: var(--accent-soft); border-bottom: 1px solid #bfdbfe;
   padding: 9px 16px; color: #1e3a8a;
 }
-.questionBannerText { font-size: 13.5px; line-height: 1.4; }
+.questionBannerText { flex: 1; font-size: 13.5px; line-height: 1.4; }
 .questionBannerText strong { font-weight: 700; margin-right: 8px; }
 .questionBannerText span { color: #1d4ed8; }
+/* A small pastel-pink circle; click it for the popup that explains the map. */
+.questionReadBtn {
+  flex-shrink: 0; width: 27px; height: 27px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%;
+  border: 1px solid #f4a6c0; background: #fbd5e3; color: #b03a6a;
+  font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; font-family: inherit;
+  transition: background .14s ease, border-color .14s ease, transform .14s ease;
+}
+.questionReadBtn:hover { background: #f9c2d6; border-color: #ec8bad; transform: scale(1.08); }
 .questionBannerClose {
   border: 0; background: transparent; color: #1e3a8a; font-size: 20px; line-height: 1;
   cursor: pointer; padding: 0 4px; flex-shrink: 0; border-radius: 6px;
