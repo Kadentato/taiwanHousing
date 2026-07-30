@@ -441,15 +441,17 @@ body.landingBody {
 .questionBannerText { flex: 1; font-size: 13.5px; line-height: 1.4; }
 .questionBannerText strong { font-weight: 700; margin-right: 8px; }
 .questionBannerText span { color: #1d4ed8; }
-/* A small pastel-pink circle; click it for the popup that explains the map. */
-.questionReadBtn {
-  flex-shrink: 0; width: 27px; height: 27px; padding: 0;
-  display: grid; place-items: center; border-radius: 50%;
-  border: 1px solid #f4a6c0; background: #fbd5e3; color: #b03a6a;
-  font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer; font-family: inherit;
+/* A small pastel-pink circle in the map's top-left corner (under the zoom +/-).
+   Click it for the popup that explains how to read the map. */
+.readControl { margin-top: 8px !important; }
+.readControl a {
+  display: grid; place-items: center; width: 32px; height: 32px;
+  border-radius: 50%; background: #fbd5e3; border: 1px solid #f4a6c0;
+  font-size: 17px; line-height: 1; cursor: pointer; text-decoration: none;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .3);
   transition: background .14s ease, border-color .14s ease, transform .14s ease;
 }
-.questionReadBtn:hover { background: #f9c2d6; border-color: #ec8bad; transform: scale(1.08); }
+.readControl a:hover { background: #f9c2d6; border-color: #ec8bad; transform: scale(1.08); }
 .questionBannerClose {
   border: 0; background: transparent; color: #1e3a8a; font-size: 20px; line-height: 1;
   cursor: pointer; padding: 0 4px; flex-shrink: 0; border-radius: 6px;

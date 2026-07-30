@@ -72,7 +72,7 @@ const store = {
 };
 
 let map, dataLayer, legend, chart;
-let mrtLayer = null, mrtControl = null;
+let mrtLayer = null, mrtControl = null, readControl = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
@@ -1022,6 +1022,34 @@ async function setMrt(on) {
   }
 }
 
+// A pastel-pink "?" button in the map's top-left corner (below the zoom +/-). It opens the
+// current question's reading guide, and only appears while a question is active.
+function addReadControl() {
+  const ctrl = L.control({ position: "topleft" });
+  ctrl.onAdd = () => {
+    const div = L.DomUtil.create("div", "leaflet-control readControl");
+    const b = L.DomUtil.create("a", "", div);
+    b.href = "#"; b.innerHTML = "💡";
+    b.title = "How to read this map — and how it answers the question";
+    b.setAttribute("aria-label", "How to read this map");
+    L.DomEvent.on(b, "click", (e) => {
+      L.DomEvent.preventDefault(e); L.DomEvent.stop(e);
+      if (!activeQuestionRead) return;
+      document.getElementById("interpretBody").innerHTML = activeQuestionRead;
+      document.getElementById("interpretModal").hidden = false;
+    });
+    L.DomEvent.disableClickPropagation(div);
+    return div;
+  };
+  ctrl.addTo(map);
+  ctrl.getContainer().style.display = "none";   // shown only when a question is active
+  readControl = ctrl;
+}
+
+function updateReadControl() {
+  if (readControl) readControl.getContainer().style.display = activeQuestionRead ? "" : "none";
+}
+
 function addMrtControl() {
   const ctrl = L.control({ position: "topright" });
   ctrl.onAdd = () => {
@@ -1102,12 +1130,6 @@ function wireControls() {
   };
   const bannerClose = document.getElementById("questionBannerClose");
   if (bannerClose) bannerClose.onclick = () => { document.getElementById("questionBanner").hidden = true; };
-  const readBtn = document.getElementById("questionRead");
-  if (readBtn) readBtn.onclick = () => {
-    if (!activeQuestionRead) return;
-    document.getElementById("interpretBody").innerHTML = activeQuestionRead;
-    document.getElementById("interpretModal").hidden = false;
-  };
   document.getElementById("chartCollapse").onclick = (e) => {
     const panel = document.getElementById("chartPanel");
     const collapsed = panel.classList.toggle("collapsed");
@@ -1225,7 +1247,7 @@ function renderHeader() {
   const s = store.summary;
   const [y0] = s.period.minDate.split("-"), [y1] = s.period.maxDate.split("-");
   document.getElementById("subtitle").textContent =
-    `Housing sales across Taiwan from ${y0} to ${y1}, cleaned up from the government registry and free to download.`;
+    `Every reported home sale in Taiwan, ${y0}–${y1} — cleaned up from the government registry and free to take.`;
   // Advertise the number you actually hand over: housing sales, land-only/parking-only
   // excluded (the same total the map and downloads use), NOT the raw transaction count.
   const ht = s.housingTotals || s.totals;
@@ -1301,8 +1323,7 @@ function setQuestionBanner(preset) {
   document.getElementById("questionTitle").textContent = preset.title;
   document.getElementById("questionHint").textContent = preset.hint || "";
   activeQuestionRead = preset.read || null;
-  const readBtn = document.getElementById("questionRead");
-  if (readBtn) readBtn.hidden = !activeQuestionRead;
+  updateReadControl();
   banner.hidden = false;
 }
 
@@ -1369,6 +1390,7 @@ async function init() {
     await loadData();
     renderHeader();
     addMrtControl();
+    addReadControl();
     wireControls();
     wireStatControls();
     applyUrlPreset();
