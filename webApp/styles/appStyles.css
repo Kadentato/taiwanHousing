@@ -310,114 +310,118 @@ body.aboutBody { height: auto; min-height: 100vh; display: block; overflow: auto
 .prose .backLink { margin-top: 30px; font-weight: 600; }
 
 /* ---------------------------------------------------------------- landing page --- */
-/* The landing page is a scrollable, warm hub — not the fixed-height app shell. */
+/* A calm, warm-paper personal-project page — deliberately low-key, easy on the eyes.
+   One muted accent, no bright gradients, gentle contrast. */
 body.landingBody {
+  --paper: #e7e1d4;      /* page background, warm greige */
+  --card: #f6f2e8;       /* cards, a touch lighter so they lift gently */
+  --edge: rgba(60, 52, 40, .13);
+  --ink: #3a332a;        /* warm near-black for headings */
+  --body: #6d6558;       /* body text */
+  --soft: #948b7b;       /* muted labels */
+  --accent: #3f7d70;     /* muted teal, used sparingly */
+  --accent-ink: #356054;
+  --chip: #e9e1d1;       /* neutral emoji chip */
   height: auto; min-height: 100vh;
-  background: linear-gradient(180deg, #fff6ec 0%, #f2f6ff 52%, #f6f3ff 100%);
-  background-attachment: fixed;
+  background: var(--paper);
+  color: var(--body);
 }
 
-/* Landing gets a light, friendly header instead of the app's dark bar. */
+/* Landing gets a quiet header rather than the app's dark bar. */
 .landingBody .appHeader {
   background: transparent; color: var(--ink);
-  max-width: 1120px; margin: 0 auto; width: 100%; padding: 20px 26px;
+  max-width: 1080px; margin: 0 auto; width: 100%; padding: 22px 24px 8px;
 }
-.landingBody .appHeader h1 { color: #1f2937; }
-.landingBody .subtitle { color: #a07f4d; }
+.landingBody .appHeader h1 { color: var(--ink); }
+.landingBody .subtitle { color: #9a8b6e; }
 .landingBody .headerLink {
-  color: #475569; border-color: rgba(15, 23, 42, .12); background: rgba(255, 255, 255, .6);
+  color: #6d6558; border-color: var(--edge); background: rgba(255, 255, 255, .35);
 }
-.landingBody .headerLink:hover { color: #1f2937; border-color: rgba(15, 23, 42, .25); background: #fff; }
+.landingBody .headerLink:hover { color: var(--ink); border-color: rgba(60, 52, 40, .3); background: rgba(255, 255, 255, .7); }
 
-.landing { max-width: 1120px; margin: 0 auto; padding: 8px 26px 84px; width: 100%; }
+.landing { max-width: 1080px; margin: 0 auto; padding: 10px 24px 88px; width: 100%; }
 
-/* Hero — a real person talking, not a paper abstract. */
-.landingHero { max-width: 720px; margin: 26px auto 6px; text-align: center; }
+/* Hero — a real person talking, kept understated. */
+.landingHero { max-width: 700px; margin: 24px auto 4px; text-align: center; }
 .landingHero .heyPill {
-  display: inline-block; font-size: 13px; font-weight: 600; color: #b45309;
-  background: #fff2dd; border: 1px solid #ffdca8; padding: 5px 14px; border-radius: 999px; margin-bottom: 22px;
+  display: inline-block; font-size: 13px; font-weight: 600; color: var(--accent-ink);
+  background: rgba(63, 125, 112, .1); border: 1px solid rgba(63, 125, 112, .22);
+  padding: 5px 13px; border-radius: 999px; margin-bottom: 20px;
 }
 .landingHero h2 {
-  font-size: 40px; line-height: 1.1; margin: 0 0 16px; font-weight: 750;
-  letter-spacing: -.8px; color: #1f2937;
+  font-size: 37px; line-height: 1.12; margin: 0 0 15px; font-weight: 700;
+  letter-spacing: -.5px; color: var(--ink);
 }
-.landingHero h2 .accent { color: var(--accent); }
-.landingHero p { font-size: 18px; color: #52606d; margin: 0 auto; max-width: 570px; line-height: 1.55; }
-.landingHero p .wink { font-style: italic; color: #7c6f5f; }
+.landingHero h2 .accent { color: var(--accent-ink); }
+.landingHero p { font-size: 17.5px; color: #675f52; margin: 0 auto; max-width: 560px; line-height: 1.55; }
+.landingHero p .wink { font-style: italic; color: #857a67; }
 
 .landingSectionLabel {
   display: flex; align-items: center; gap: 12px;
-  font-size: 15.5px; font-weight: 700; color: #374151; margin: 46px 4px 18px;
+  font-size: 15px; font-weight: 650; color: #5c5445; margin: 44px 2px 16px;
 }
-.landingSectionLabel::after { content: ""; flex: 1; height: 1px; background: rgba(15, 23, 42, .09); }
+.landingSectionLabel::after { content: ""; flex: 1; height: 1px; background: rgba(60, 52, 40, .12); }
 
-.questionGrid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.questionGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 
 .questionCard {
-  --qc: #2563eb; --qcSoft: #eaf1ff;
   position: relative; display: flex; flex-direction: column; text-decoration: none; color: inherit;
-  background: #fff; border: 1px solid rgba(15, 23, 42, .07); border-radius: 20px;
-  padding: 24px 22px 22px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 10px 22px -16px rgba(15, 23, 42, .35);
-  transition: transform .16s ease, box-shadow .16s ease;
+  background: var(--card); border: 1px solid var(--edge); border-radius: 16px;
+  padding: 22px 22px 20px;
+  box-shadow: 0 1px 2px rgba(60, 52, 40, .05);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
-.questionCard:hover { transform: translateY(-4px) rotate(-.35deg); box-shadow: 0 20px 36px -20px rgba(15, 23, 42, .45); }
+.questionCard:hover {
+  transform: translateY(-3px); border-color: rgba(63, 125, 112, .4);
+  box-shadow: 0 12px 24px -16px rgba(60, 52, 40, .5);
+}
 .questionCard .qEmoji {
-  width: 52px; height: 52px; display: grid; place-items: center; font-size: 27px;
-  background: var(--qcSoft); border-radius: 15px; margin-bottom: 16px;
+  width: 46px; height: 46px; display: grid; place-items: center; font-size: 24px;
+  background: var(--chip); border-radius: 13px; margin-bottom: 15px;
 }
-.questionCard h3 { font-size: 19px; margin: 0 0 9px; font-weight: 700; line-height: 1.25; color: #1f2937; }
-.questionCard p { font-size: 14px; color: #64707d; margin: 0; line-height: 1.55; flex: 1; }
-.questionCard p em { color: #4b5563; font-style: italic; }
-.questionCard .qGo { margin-top: 18px; font-size: 14px; font-weight: 650; color: var(--qc); }
+.questionCard h3 { font-size: 18.5px; margin: 0 0 8px; font-weight: 680; line-height: 1.25; color: var(--ink); }
+.questionCard p { font-size: 14px; color: var(--body); margin: 0; line-height: 1.55; flex: 1; }
+.questionCard p em { color: var(--ink); font-style: italic; }
+.questionCard .qGo { margin-top: 16px; font-size: 13.5px; font-weight: 620; color: var(--accent-ink); }
 .questionCard:hover .qGo { text-decoration: underline; }
 
-/* Each card gets its own little colour personality. */
-.qc-amber  { --qc: #d97706; --qcSoft: #fff3e0; }
-.qc-rose   { --qc: #e11d63; --qcSoft: #ffe9f1; }
-.qc-teal   { --qc: #0d9488; --qcSoft: #dbf5f1; }
-.qc-purple { --qc: #7c3aed; --qcSoft: #f1e9ff; }
-.qc-violet { --qc: #6d28d9; --qcSoft: #efe8ff; }
-.qc-cyan   { --qc: #0891b2; --qcSoft: #def4fa; }
-
-/* Flagship — the star, full width, and it knows it. */
+/* Flagship — set apart by a soft accent tint and a rule, not brightness. */
 .questionCard.flagship {
-  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 26px;
-  background: linear-gradient(120deg, #2563eb 0%, #4f46e5 58%, #7c3aed 100%);
-  border: none; color: #fff; padding: 30px 30px;
+  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 24px;
+  background: #eaf0ed; border-color: rgba(63, 125, 112, .28);
+  border-left: 3px solid var(--accent); padding: 26px 28px;
 }
-.questionCard.flagship:hover { transform: translateY(-4px); box-shadow: 0 26px 46px -22px rgba(79, 70, 229, .7); }
 .questionCard.flagship .qEmoji {
-  width: 66px; height: 66px; font-size: 34px; flex-shrink: 0;
-  background: rgba(255, 255, 255, .16); border-radius: 18px; margin: 0;
+  width: 60px; height: 60px; font-size: 30px; flex-shrink: 0;
+  background: rgba(63, 125, 112, .13); border-radius: 16px; margin: 0;
 }
 .questionCard.flagship .qBody { flex: 1; }
-.questionCard.flagship h3 { color: #fff; font-size: 24px; margin-bottom: 8px; }
-.questionCard.flagship p { color: rgba(255, 255, 255, .88); font-size: 15px; }
-.questionCard.flagship p em { color: #fff; }
+.questionCard.flagship h3 { font-size: 22px; margin-bottom: 7px; }
+.questionCard.flagship p { font-size: 14.5px; }
 .questionCard.flagship .qTag {
-  display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
-  color: #fff; background: rgba(255, 255, 255, .2); padding: 4px 11px; border-radius: 999px; margin-bottom: 12px;
+  display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--accent-ink); background: rgba(63, 125, 112, .15);
+  padding: 3px 10px; border-radius: 999px; margin-bottom: 11px;
 }
-.questionCard.flagship .qGo { color: #fff; margin-top: 14px; }
+.questionCard.flagship .qGo { margin-top: 12px; }
 
 /* Still-cooking items: visible, dashed, clearly not ready. */
-.questionCard.soon { background: rgba(255, 255, 255, .5); border-style: dashed; box-shadow: none; cursor: default; }
-.questionCard.soon:hover { transform: none; box-shadow: none; }
-.questionCard.soon .qEmoji { filter: grayscale(.3); opacity: .85; }
-.questionCard.soon h3 { color: #7e8894; }
-.questionCard.soon p { color: #929ba7; }
-.questionCard.soon .qGo { color: #a4adb8; }
+.questionCard.soon { background: transparent; border-style: dashed; box-shadow: none; cursor: default; }
+.questionCard.soon:hover { transform: none; box-shadow: none; border-color: var(--edge); }
+.questionCard.soon .qEmoji { background: rgba(60, 52, 40, .06); filter: grayscale(.35); opacity: .8; }
+.questionCard.soon h3 { color: #8a8172; }
+.questionCard.soon p { color: #9a9182; }
+.questionCard.soon .qGo { color: #a8a091; }
 
 .landingFoot {
-  text-align: center; margin: 58px auto 0; max-width: 560px;
-  font-size: 14.5px; color: #64707d; line-height: 1.65;
+  text-align: center; margin: 56px auto 0; max-width: 560px;
+  font-size: 14px; color: #7a7263; line-height: 1.65;
 }
-.landingFoot a { color: var(--accent); font-weight: 600; }
-.landingFoot .sig { display: block; margin-top: 12px; font-style: italic; color: #8a7a63; }
+.landingFoot a { color: var(--accent-ink); font-weight: 600; }
+.landingFoot .sig { display: block; margin-top: 11px; font-style: italic; color: #8f8370; }
 
 @media (max-width: 560px) {
-  .landingHero h2 { font-size: 31px; }
+  .landingHero h2 { font-size: 30px; }
   .questionCard.flagship { flex-direction: column; align-items: flex-start; text-align: left; }
 }
 
