@@ -3,19 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Taiwan Housing Explorer</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=12" />
+  <title>Taiwan Housing Explorer — Ask the data a question</title>
+  <link rel="stylesheet" href="styles/appStyles.css?v=13" />
 </head>
-<body>
+<body class="landingBody">
   <header class="appHeader">
     <div>
       <h1>Taiwan Housing Explorer</h1>
-      <p class="subtitle" id="subtitle">Loading data…</p>
+      <p class="subtitle">3.5 million real property sales, 2012–2026 · built from Taiwan's open price registry</p>
     </div>
     <div class="headerRight">
-      <div class="headerStats" id="headerStats"></div>
-      <button class="headerLink" id="methodsBtn" type="button">Methods ⓘ</button>
       <a class="headerLink" href="predictor.html">Price predictor ↗</a>
       <a class="headerLink" href="database.html">Browse database ↗</a>
       <a class="headerLink" href="about.html">About ↗</a>
@@ -23,74 +20,102 @@
     </div>
   </header>
 
-  <div class="appBody">
-    <aside class="sidebar">
-      <section class="control">
-        <label class="controlLabel" for="metricSelect">Colour by</label>
-        <select id="metricSelect">
-          <option value="unit">Median unit price (NT$/ping)</option>
-          <option value="total">Median total price (NT$)</option>
-          <option value="count">Transaction count</option>
-          <option value="ping">Median living size (ping)</option>
-          <option value="lisa">Price clusters (hot / cold spots)</option>
-        </select>
-        <p class="unitNote">Prices and sizes are in <b>ping</b> (坪), Taiwan's standard unit —
-          1 ping ≈ 3.31 m² ≈ 35.6 sq ft.</p>
-      </section>
-
-      <section class="control">
-        <label class="controlLabel" for="cityScope">Where</label>
-        <select id="cityScope"><option value="">All cities</option></select>
-        <p class="unitNote">Pick a city to see its districts, then click one for every individual sale.</p>
-      </section>
-
-      <section class="statsCard" id="statsCard">
-        <h3>Current selection</h3>
-        <div id="statsBody"></div>
-      </section>
-
-      <p class="dataNote" id="dataNote"></p>
-    </aside>
-
-    <main class="mainArea">
-      <div class="viewBar">
-        <div class="segmented viewToggle" id="viewToggle">
-          <button data-view="map" class="active">Map</button>
-          <button data-view="table">Records</button>
-        </div>
-        <div class="viewBarRight" id="viewBarRight"></div>
-      </div>
-
-      <div id="mapView" class="mapView">
-        <div id="map"></div>
-        <div class="chartPanel" id="chartPanel">
-          <div class="chartHeader">
-            <h3 id="chartTitle">Market over time</h3>
-            <span class="chartHint" id="chartHint">bars = transactions · line = median unit price (NT$/ping)</span>
-            <button class="chartCollapse" id="chartCollapse" type="button" title="Hide / show the chart">▾</button>
-          </div>
-          <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
-        </div>
-      </div>
-
-      <div id="tableView" class="tableView" hidden>
-        <div class="tableScroll">
-          <table id="dataTable"><thead></thead><tbody></tbody></table>
-        </div>
-        <div class="tablePager" id="tablePager"></div>
-      </div>
-    </main>
-  </div>
-
-  <div id="methodsModal" class="modal" hidden>
-    <div class="modalCard">
-      <button class="modalClose" id="methodsClose" aria-label="Close">×</button>
-      <div id="methodsBody" class="prose"></div>
+  <main class="landing">
+    <div class="landingHero">
+      <h2>What do you want to know about Taiwan's housing?</h2>
+      <p>Pick a question below. Each one opens a map built to answer it — from the whole
+        country down to individual homes at their real street addresses.</p>
     </div>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=43"></script>
+    <div class="landingSectionLabel">Featured question</div>
+    <div class="questionGrid">
+      <a class="questionCard flagship" href="explorer.html?q=mrt">
+        <span class="qTag">New</span>
+        <div class="qEmoji">🚇</div>
+        <h3>Does living near the MRT cost more?</h3>
+        <p>Every Taipei and New Taipei home coloured by how far it sits from the nearest metro
+          station, with the MRT lines laid over the top — so you can see the price of proximity.</p>
+        <div class="qGo">Open the map →</div>
+      </a>
+    </div>
+
+    <div class="landingSectionLabel">Explore the market</div>
+    <div class="questionGrid">
+      <a class="questionCard" href="explorer.html?q=price">
+        <div class="qEmoji">💰</div>
+        <h3>Where is housing most expensive?</h3>
+        <p>Median price per ping across every city and district — click down from region to
+          single homes to see where Taiwan's costliest addresses are.</p>
+        <div class="qGo">Open the map →</div>
+      </a>
+
+      <a class="questionCard" href="explorer.html?q=activity">
+        <div class="qEmoji">🔥</div>
+        <h3>Where do the most sales happen?</h3>
+        <p>Transaction counts by area — the busiest housing markets in the country, and the
+          quiet corners where almost nothing changes hands.</p>
+        <div class="qGo">Open the map →</div>
+      </a>
+
+      <a class="questionCard" href="explorer.html?q=size">
+        <div class="qEmoji">📐</div>
+        <h3>Where are the biggest homes?</h3>
+        <p>Median living size by district. See where space is plentiful versus where people
+          are paying top prices for very little floor area.</p>
+        <div class="qGo">Open the map →</div>
+      </a>
+
+      <a class="questionCard" href="explorer.html?q=clusters">
+        <div class="qEmoji">🌡️</div>
+        <h3>Where are the hot &amp; cold price zones?</h3>
+        <p>A statistical hot-spot map (LISA clusters) that flags districts far pricier — or far
+          cheaper — than their neighbours, not just the raw numbers.</p>
+        <div class="qGo">Open the map →</div>
+      </a>
+    </div>
+
+    <div class="landingSectionLabel">Go deeper</div>
+    <div class="questionGrid">
+      <a class="questionCard" href="predictor.html">
+        <div class="qEmoji">🔮</div>
+        <h3>What is a specific home worth?</h3>
+        <p>Describe a place — where, how big, how old, its features — and get an estimated
+          price with honest 50/80/95% ranges, all computed in your browser.</p>
+        <div class="qGo">Open the predictor →</div>
+      </a>
+
+      <a class="questionCard" href="database.html">
+        <div class="qEmoji">🔎</div>
+        <h3>Run your own query</h3>
+        <p>The full dataset loaded into your browser, with every table and column and an SQL
+          box — ask whatever the data can answer.</p>
+        <div class="qGo">Browse the database →</div>
+      </a>
+    </div>
+
+    <div class="landingSectionLabel">Coming soon</div>
+    <div class="questionGrid">
+      <div class="questionCard soon">
+        <div class="qEmoji">🏙️</div>
+        <h3>Do high-rise districts cost more?</h3>
+        <p>Comparing prices against building height and floor level. Needs the tower data
+          wired into the map — on the way.</p>
+        <div class="qGo">In progress</div>
+      </div>
+
+      <div class="questionCard soon">
+        <div class="qEmoji">🌏</div>
+        <h3>Does immigration track with prices?</h3>
+        <p>Overlaying district demographics against the market. Needs an outside dataset
+          sourced and joined first.</p>
+        <div class="qGo">Planned</div>
+      </div>
+    </div>
+
+    <p class="landingFoot">
+      All figures come straight from Taiwan's Actual Price Registration open data.
+      <a href="about.html">How this was built →</a>
+    </p>
+  </main>
 </body>
 </html>

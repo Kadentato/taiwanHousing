@@ -308,3 +308,73 @@ body.aboutBody { height: auto; min-height: 100vh; display: block; overflow: auto
 }
 .prose a { color: var(--accent); }
 .prose .backLink { margin-top: 30px; font-weight: 600; }
+
+/* ---------------------------------------------------------------- landing page --- */
+/* The landing page is a scrollable hub, not the fixed-height app shell. */
+body.landingBody { height: auto; min-height: 100vh; background: #f8fafc; }
+
+.landing { max-width: 1080px; margin: 0 auto; padding: 40px 24px 72px; width: 100%; }
+
+.landingHero { text-align: center; margin: 18px 0 40px; }
+.landingHero h2 {
+  font-size: 34px; line-height: 1.15; margin: 0 0 14px; font-weight: 700;
+  letter-spacing: -.4px; color: var(--ink);
+}
+.landingHero p { font-size: 17px; color: #475569; margin: 0 auto; max-width: 620px; line-height: 1.5; }
+
+.landingSectionLabel {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px;
+  color: var(--muted); margin: 40px 0 14px;
+}
+.landingSectionLabel:first-of-type { margin-top: 0; }
+
+.questionGrid {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.questionCard {
+  display: flex; flex-direction: column; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 22px 22px 20px; box-shadow: var(--shadow);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+.questionCard:hover {
+  transform: translateY(-3px); border-color: #bfdbfe;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
+}
+.questionCard .qEmoji { font-size: 26px; line-height: 1; margin-bottom: 12px; }
+.questionCard h3 { font-size: 18px; margin: 0 0 8px; font-weight: 650; line-height: 1.3; }
+.questionCard p { font-size: 13.5px; color: var(--muted); margin: 0; line-height: 1.5; flex: 1; }
+.questionCard .qGo { margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--accent); }
+
+/* Flagship (innovative) question gets an accent frame. */
+.questionCard.flagship { border-color: var(--accent); background: linear-gradient(180deg, #f5f9ff, #fff); }
+.questionCard.flagship .qTag {
+  align-self: flex-start; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--accent); background: var(--accent-soft);
+  padding: 3px 9px; border-radius: 999px; margin-bottom: 12px;
+}
+
+/* Roadmap items: visible but not yet clickable. */
+.questionCard.soon { opacity: .62; box-shadow: none; cursor: default; }
+.questionCard.soon:hover { transform: none; border-color: var(--line); box-shadow: none; }
+.questionCard.soon .qGo { color: var(--muted); }
+
+.landingFoot { text-align: center; margin-top: 48px; font-size: 13px; color: var(--muted); }
+.landingFoot a { color: var(--accent); }
+
+/* ---------------------------------------------------------------- question banner --- */
+.questionBanner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: var(--accent-soft); border-bottom: 1px solid #bfdbfe;
+  padding: 9px 16px; color: #1e3a8a;
+}
+.questionBannerText { font-size: 13.5px; line-height: 1.4; }
+.questionBannerText strong { font-weight: 700; margin-right: 8px; }
+.questionBannerText span { color: #1d4ed8; }
+.questionBannerClose {
+  border: 0; background: transparent; color: #1e3a8a; font-size: 20px; line-height: 1;
+  cursor: pointer; padding: 0 4px; flex-shrink: 0; border-radius: 6px;
+}
+.questionBannerClose:hover { background: rgba(30, 58, 138, .1); }

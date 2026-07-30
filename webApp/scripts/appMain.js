@@ -33,6 +33,7 @@ const state = {
   fixedScale: false,    // fixed vs adaptive colour bins
   colorMode: "metric",  // "metric" | "lisa"
   showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
+  question: null,       // active landing-page question (e.g. "mrt"), drives preset behaviour
 };
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
@@ -64,6 +65,7 @@ const store = {
   records: [],           // the CURRENTLY drilled district's full records (else empty)
   series: null,          // monthlyMarketSeries.json — full-data time series (national + per city)
   mrt: null,             // taipeiMrt.geojson — lazily loaded when the MRT overlay is first shown
+  mrtStations: null,     // [[lat, lon], …] station coords, derived from mrt for distance lookups
   geom: { city: new Map(), district: new Map() },
   cityByCode: new Map(),
   districtById: new Map(),
@@ -120,6 +122,11 @@ const METRIC = {
   ping:  { label: "Median size", short: "size", unit: "ping",
            fmt: (v) => Math.round(v).toLocaleString() + " ping",
            val: (r) => (r.livingAreaPing == null ? null : r.livingAreaPing) },
+  // House-level only (the "does the MRT cost more?" question). Each home's straight-line distance
+  // to the nearest metro station, precomputed onto records via annotateMrtDistances(). Lower = closer.
+  mrtDist: { label: "Distance to nearest MRT", short: "MRT distance", unit: "m",
+           fmt: (v) => v >= 1000 ? (v / 1000).toFixed(1) + " km" : Math.round(v).toLocaleString() + " m",
+           val: (r) => (r._mrtDist == null ? null : r._mrtDist) },
 };
 for (const m of Object.values(METRIC)) {
   m.values = (rs) => rs.map(m.val).filter((v) => v != null);
@@ -298,19 +305,22 @@ function renderMap() {
   if (dataLayer) { dataLayer.remove(); dataLayer = null; }
   if (state.level === "houses") { renderHouses(); return; }
 
-  const metric = METRIC[state.metric];
+  // mrtDist is a per-home metric with no district/city aggregate — fall back to unit price
+  // for the choropleth (the MRT question colours by distance only once you drill into homes).
+  const metricKey = state.metric === "mrtDist" ? "unit" : state.metric;
+  const metric = METRIC[metricKey];
   const lisaMode = state.colorMode === "lisa" && state.level === "district";
   const enough = (f) => aggCount(f) >= state.minN;                // small-n greyed out
   const feats = featuresForLevel();
 
   const bins = lisaMode ? []
-    : (state.fixedScale ? globalBins(state.metric)
-       : quantileBins(feats.filter(enough).map((f) => aggMetric(f, state.metric)).filter((v) => v != null)));
+    : (state.fixedScale ? globalBins(metricKey)
+       : quantileBins(feats.filter(enough).map((f) => aggMetric(f, metricKey)).filter((v) => v != null)));
 
   const fillFor = (feature) => {
     if (!enough(feature)) return NO_DATA;
     if (lisaMode) return LISA_COLORS[feature.properties.lisa] || NO_DATA;
-    const v = aggMetric(feature, state.metric);
+    const v = aggMetric(feature, metricKey);
     return v == null ? NO_DATA : colorFor(v, bins);
   };
 
@@ -472,6 +482,7 @@ function housePopup(r) {
     + row("Layout", `${r.bedrooms ?? "?"} bd / ${r.bathrooms ?? "?"} ba`)
     + row("Age", r.buildingAgeYears != null ? r.buildingAgeYears + " yrs" : "—")
     + row("Parking", parkingStr(r)) + row("Elevator", yesNo(r.hasElevator))
+    + (r._mrtDist != null ? row("Nearest MRT", METRIC.mrtDist.fmt(r._mrtDist)) : "")
     + row("Date", monthStr(r));
 }
 
@@ -513,6 +524,9 @@ function popView() {
   const prev = viewStack.pop();
   state.level = prev.level;
   state.scopeCity = prev.scopeCity; state.scopeDistrict = prev.scopeDistrict;
+  // Leaving the individual homes during the MRT question: the choropleth has no MRT-distance
+  // aggregate, so revert its colouring to unit price until the user drills back in.
+  if (state.question === "mrt" && state.level !== "houses") state.metric = "unit";
   syncControls();
   renderAll();
   map.setView(prev.center, prev.zoom, { animate: true });
@@ -533,8 +547,17 @@ async function drillInto(feature) {
     state.scopeCity = feature.properties.cityCode;
     state.level = "houses";
     syncControls();
-    updateLegend([], METRIC[state.metric], "Loading transactions…");
+    updateLegend([], METRIC[state.metric === "mrtDist" ? "unit" : state.metric], "Loading transactions…");
     store.records = await loadDistrictRecords(did);   // fetch this district's full records
+    // The MRT question colours individual homes by distance to the nearest station.
+    if (state.question === "mrt") {
+      state.metric = "mrtDist";
+      const opt = document.querySelector('#metricSelect option[value="mrtDist"]');
+      if (opt) opt.hidden = false;
+      await ensureMrtStations();
+      annotateMrtDistances(store.records);
+      syncControls();
+    }
     renderAll();
     const c = store.geom.district.get(did);
     if (c) map.setView([c.geometry.coordinates[1], c.geometry.coordinates[0]], 13);
@@ -922,6 +945,48 @@ async function loadMrt() {
   return store.mrt;
 }
 
+// --- MRT proximity ("does living near the metro cost more?") -----------------
+// Great-circle distance in metres. Over a single city the flat-earth error is tiny,
+// but haversine is cheap and keeps distances honest across the whole network.
+function haversineM(lat1, lon1, lat2, lon2) {
+  const R = 6371000, toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad, dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Station coords ([lat, lon]) pulled once from the MRT GeoJSON, cached for distance lookups.
+async function ensureMrtStations() {
+  if (store.mrtStations) return store.mrtStations;
+  const fc = await loadMrt();
+  store.mrtStations = fc.features
+    .filter((f) => f.properties.kind === "station")
+    .map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]);
+  return store.mrtStations;
+}
+
+function nearestMrtDistanceM(lat, lon) {
+  const stations = store.mrtStations;
+  if (!stations || !stations.length) return null;
+  let best = Infinity;
+  for (const [slat, slon] of stations) {
+    const d = haversineM(lat, lon, slat, slon);
+    if (d < best) best = d;
+  }
+  return best === Infinity ? null : best;
+}
+
+// Tag each geocoded record with its distance to the nearest station (once).
+function annotateMrtDistances(recs) {
+  if (!store.mrtStations) return;
+  for (const r of recs) {
+    if (r._mrtDist === undefined) {
+      r._mrtDist = (r.lat != null && r.lon != null) ? nearestMrtDistanceM(r.lat, r.lon) : null;
+    }
+  }
+}
+
 function buildMrtLayer(fc) {
   const lineFeats = fc.features.filter((f) => f.properties.kind === "line");
   const stationFeats = fc.features.filter((f) => f.properties.kind === "station");
@@ -1019,6 +1084,13 @@ function wireControls() {
   // The map level follows the scope: "All cities" colours cities, picking one shows its
   // districts. One control instead of two, and it matches how people actually navigate.
   document.getElementById("cityScope").onchange = (e) => {
+    // Manually changing city leaves the guided landing-page question behind.
+    if (state.question) {
+      state.question = null;
+      if (state.metric === "mrtDist") state.metric = "unit";
+      const banner = document.getElementById("questionBanner");
+      if (banner) banner.hidden = true;
+    }
     state.scopeCity = e.target.value;
     clearDrill();
     state.level = state.scopeCity ? "district" : "city";
@@ -1028,6 +1100,8 @@ function wireControls() {
     if (!e.target.dataset.view) return;
     setView(e.target.dataset.view);
   };
+  const bannerClose = document.getElementById("questionBannerClose");
+  if (bannerClose) bannerClose.onclick = () => { document.getElementById("questionBanner").hidden = true; };
   document.getElementById("chartCollapse").onclick = () => {
     document.getElementById("chartPanel").classList.toggle("collapsed");
     setTimeout(() => { map.invalidateSize(); if (chart) chart.resize(); }, 60);
@@ -1156,6 +1230,56 @@ function renderHeader() {
     + "Source: Ministry of the Interior LVR open data.";
 }
 
+// ------------------------------------------- landing-page question presets ---
+// The homepage (index.html) is a hub of questions; each links here with ?q=<key>, and we
+// open the map already configured to answer it. Also accepts ?metric=<key> for a raw metric.
+const QUESTION_PRESETS = {
+  price:    { metric: "unit",  title: "Where is housing most expensive?",
+              hint: "Median price per ping. Click a city, then a district, to reach individual homes." },
+  activity: { metric: "count", title: "Where do the most sales happen?",
+              hint: "Coloured by transaction count — the busiest markets versus the quiet ones." },
+  size:     { metric: "ping",  title: "Where are the biggest homes?",
+              hint: "Median living size by area, measured in ping." },
+  clusters: { lisa: true,      title: "Where are the hot & cold price zones?",
+              hint: "LISA clusters flag districts far pricier (red) or cheaper (blue) than their neighbours." },
+  mrt:      { question: "mrt", city: "a", mrt: true,
+              title: "Does living near the MRT cost more?",
+              hint: "Taipei is shown by price. Click a district to colour its homes by distance to the nearest station." },
+};
+
+function setQuestionBanner(title, hint) {
+  const banner = document.getElementById("questionBanner");
+  if (!banner) return;
+  document.getElementById("questionTitle").textContent = title;
+  document.getElementById("questionHint").textContent = hint || "";
+  banner.hidden = false;
+}
+
+function applyUrlPreset() {
+  const params = new URLSearchParams(location.search);
+  const key = params.get("q");
+  const rawMetric = params.get("metric");
+  if (!key && rawMetric && METRIC[rawMetric] && rawMetric !== "mrtDist") {
+    state.metric = rawMetric; state.colorMode = "metric";
+    return;
+  }
+  const preset = key && QUESTION_PRESETS[key];
+  if (!preset) return;
+
+  state.question = preset.question || null;
+  if (preset.city) { state.scopeCity = preset.city; state.level = "district"; }
+  if (preset.lisa) {
+    state.colorMode = "lisa"; state.level = "district";
+  } else if (preset.metric) {
+    state.colorMode = "metric"; state.metric = preset.metric;
+  }
+  if (preset.mrt) {
+    state.showMrt = true;
+    ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
+  }
+  setQuestionBanner(preset.title, preset.hint);
+}
+
 async function init() {
   const overlay = document.createElement("div");
   overlay.className = "loadingOverlay";
@@ -1196,8 +1320,10 @@ async function init() {
     addMrtControl();
     wireControls();
     wireStatControls();
+    applyUrlPreset();
     syncControls();
     renderAll();
+    if (state.scopeCity) fitToScope();
     // Containers may have been zero-sized at init; settle layout once loaded.
     setTimeout(() => { map.invalidateSize(); if (chart) chart.resize(); }, 200);
     window.addEventListener("resize", () => { map.invalidateSize(); if (chart) chart.resize(); });
