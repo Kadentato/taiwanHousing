@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=22" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=23" />
 </head>
 <body>
   <header class="appHeader">
@@ -57,17 +57,17 @@
     </aside>
 
     <main class="mainArea">
-      <div class="questionBanner" id="questionBanner" hidden>
-        <div class="questionBannerText">
-          <strong id="questionTitle"></strong>
-          <span id="questionHint"></span>
-        </div>
-        <button class="questionBannerClose" id="questionBannerClose" type="button" aria-label="Dismiss">×</button>
-      </div>
       <div class="viewBar">
         <div class="segmented viewToggle" id="viewToggle">
           <button data-view="map" class="active">Map</button>
           <button data-view="table">Records</button>
+        </div>
+        <div class="questionBanner" id="questionBanner" hidden>
+          <div class="questionBannerText">
+            <strong id="questionTitle"></strong>
+            <span id="questionHint"></span>
+          </div>
+          <button class="questionBannerClose" id="questionBannerClose" type="button" aria-label="Dismiss">×</button>
         </div>
         <div class="viewBarRight" id="viewBarRight"></div>
       </div>

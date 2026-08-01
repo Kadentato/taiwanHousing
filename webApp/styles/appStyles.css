@@ -200,11 +200,11 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 
 /* View switch bar (Map / Table) */
 .viewBar {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 14px;
   padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line);
 }
-.viewToggle { width: 200px; }
-.viewBarRight { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); }
+.viewToggle { width: 200px; flex-shrink: 0; }
+.viewBarRight { display: flex; align-items: center; gap: 12px; margin-left: auto; font-size: 12.5px; color: var(--muted); }
 .downloadBtn {
   border: 1px solid var(--accent); background: var(--accent); color: #fff;
   border-radius: 8px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
@@ -474,12 +474,15 @@ body.landingBody {
 }
 
 /* ---------------------------------------------------------------- question banner --- */
+/* Sits inline in the .viewBar row, sharing it with the Map / Records toggle. */
 .questionBanner {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  background: var(--accent-soft); border-bottom: 1px solid #c3d9d2;
-  padding: 9px 16px; color: #2c4d45;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  flex: 1 1 auto; color: #2c4d45; padding-left: 4px;
 }
-.questionBannerText { flex: 1; font-size: 13.5px; line-height: 1.4; }
+.questionBannerText {
+  min-width: 0; font-size: 13px; line-height: 1.35; color: #2c4d45;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .questionBannerText strong { font-weight: 700; margin-right: 8px; }
 .questionBannerText span { color: var(--accent-ink); }
 /* A small pastel-pink circle in the map's top-right corner.
