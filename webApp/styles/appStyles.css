@@ -181,7 +181,9 @@ details.collapsible > *:not(summary) { margin-top: 9px; }
 
 /* MRT overlay toggle (a Leaflet control button, top-right) */
 .mrtToggle a {
-  display: block; padding: 0 9px; height: 28px;
+  /* width !important beats Leaflet's .leaflet-touch .leaflet-bar a { width:30px },
+     which would otherwise clip the "🚇 MRT" text past the coloured background. */
+  display: block; width: auto !important; padding: 0 9px; height: 28px;
   font: 600 12px/28px system-ui, sans-serif; color: var(--ink);
   background: #fff; text-decoration: none; white-space: nowrap;
 }
@@ -482,6 +484,15 @@ body.landingBody {
 .questionBannerText span { color: var(--accent-ink); }
 /* A small pastel-pink circle in the map's top-right corner.
    Click it for the two-page popup: how to read the map, then what the data says. */
+/* Self-updating build marker, bottom-left. Confirms which assets the browser loaded. */
+.buildTag {
+  position: fixed; left: 8px; bottom: 6px; z-index: 1200;
+  font: 500 10.5px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted); background: rgba(246, 242, 232, .82);
+  border: 1px solid var(--edge); border-radius: 5px; padding: 3px 6px;
+  letter-spacing: .02em; pointer-events: none; user-select: none;
+}
+
 .readControl { margin-top: 8px !important; }
 .readControl a {
   display: grid; place-items: center; width: 32px; height: 32px;

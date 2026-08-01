@@ -1496,6 +1496,23 @@ async function init() {
     return;
   }
   overlay.remove();
+  addBuildTag();
+}
+
+// A tiny version marker in the bottom-left corner. It reads the ?v= off the actually-loaded
+// appMain.js / appStyles.css tags, so it's self-updating and confirms which build the browser
+// is running — handy for spotting a stale cache after a deploy.
+function addBuildTag() {
+  const ver = (sel) => {
+    const el = document.querySelector(sel);
+    const src = el && (el.src || el.href) || "";
+    return (src.match(/v=(\d+)/) || [])[1] || "?";
+  };
+  const el = document.createElement("div");
+  el.className = "buildTag";
+  el.textContent = `js v${ver('script[src*="appMain.js"]')} · css v${ver('link[href*="appStyles.css"]')}`;
+  el.title = "Asset versions currently loaded (bump on each deploy)";
+  document.body.appendChild(el);
 }
 
 init();
