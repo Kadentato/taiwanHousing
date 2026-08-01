@@ -1247,7 +1247,7 @@ function renderHeader() {
   const s = store.summary;
   const [y0] = s.period.minDate.split("-"), [y1] = s.period.maxDate.split("-");
   document.getElementById("subtitle").textContent =
-    `Every reported home sale in Taiwan, ${y0}–${y1} — cleaned up from the government registry and free to take.`;
+    `Millions of real home sales across Taiwan, ${y0}–${y1} — cleaned up from the government registry and free to take.`;
   // Advertise the number you actually hand over: housing sales, land-only/parking-only
   // excluded (the same total the map and downloads use), NOT the raw transaction count.
   const ht = s.housingTotals || s.totals;
@@ -1279,7 +1279,7 @@ const QUESTION_PRESETS = {
   activity: { metric: "count", title: "Where's the market buzzing?",
               hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones.",
               read: `<h2>Reading the activity map</h2>
-                <p>Some neighbourhoods never stop changing hands; others sit quiet for years. This map is simply <b>how many homes actually sold</b> in each place — colour and bubble size climb together, so the busy markets are impossible to miss.</p>
+                <p>Some neighbourhoods see homes change hands constantly; in others, barely anything moves. This map is simply <b>how many homes actually sold</b> in each place — colour and bubble size climb together, so the busy markets are easy to pick out.</p>
                 <ul>
                   <li><b>Drill into a city</b> to see which of its districts do the real volume.</li>
                   <li><b>Watch it move.</b> Pop up the chart at the bottom and it's sales per month — the booms, the slumps, and the slow seasons in between.</li>
@@ -1307,13 +1307,13 @@ const QUESTION_PRESETS = {
               title: "Does living near the MRT actually cost more?",
               hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station.",
               read: `<h2>Reading the MRT map</h2>
-                <p>Everyone in Taipei has a hunch that living near the metro costs more — this map is where you get to actually test it. It comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
+                <p>It's a common assumption that living near the metro costs more — this map is where you get to actually test it, one district at a time. It comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
                 <ul>
                   <li><b>Find your footing.</b> Taipei opens shaded by price. Click any district and every home inside it re-colours by <b>distance to the nearest MRT stop</b> — the palest dots are sitting right on top of a station, the deeper ones are a walk away.</li>
                   <li><b>The lines are right there</b> on top of the map, so you can watch the dots hug them. Hover any dot for that exact home's distance and price.</li>
                   <li><b>Prefer numbers?</b> The <b>Records</b> tab is every sale, and the histogram shows how that district's prices spread out.</li>
                 </ul>
-                <p>Set a dot beside a line against one a few blocks off and the pattern shows up fast: in Taipei, homes within about 250&nbsp;m of a station run roughly a third more per ping than the ones past 750&nbsp;m. The colour warms the moment you step away from the tracks.</p>` },
+                <p>Across Taipei's geocoded homes, the ones sitting within a couple hundred metres of a station do tend to fetch a good deal more per ping than those a long walk away. Read it with a careful eye, though — stations cluster in the densest, most central districts, so the map is showing a <em>correlation</em>, not proof that the metro itself is what sets the price.</p>` },
 };
 let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 

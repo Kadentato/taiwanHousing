@@ -5,17 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=18" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=19" />
 </head>
 <body>
   <header class="appHeader">
     <div>
-      <h1>Taiwan Housing Explorer</h1>
+      <a class="brand" href="index.html" title="Back to all questions">
+        <span class="brandIcon" aria-hidden="true">🏠</span>
+        <h1>Taiwan Housing Explorer</h1>
+      </a>
       <p class="subtitle" id="subtitle">Loading data…</p>
     </div>
     <div class="headerRight">
       <div class="headerStats" id="headerStats"></div>
-      <a class="headerLink" href="index.html">← All questions</a>
       <button class="headerLink" id="methodsBtn" type="button">Methods ⓘ</button>
       <a class="headerLink" href="predictor.html">Price predictor ↗</a>
       <a class="headerLink" href="database.html">Browse database ↗</a>
@@ -111,6 +113,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=50"></script>
+  <script src="scripts/appMain.js?v=51"></script>
 </body>
 </html>
