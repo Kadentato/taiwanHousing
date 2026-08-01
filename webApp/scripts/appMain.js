@@ -1317,93 +1317,58 @@ const QUESTION_PRESETS = {
               hint: "Start with the whole island, then click a city and a district to reach individual sold homes.",
               read: {
                 guide: `<h2>Reading the price map</h2>
-                <p>The map opens with one plain question — where does the money actually go? Every area is shaded by its <b>median price per ping</b>, so the darker a place runs, the more you're handing over for the same square of floor.</p>
-                <p class="lookFor"><b>What to look at:</b> follow the darkest shading as you drill in, and flip <b>Colour by</b> to <em>total price</em> to see how much of that is just bigger homes.</p>
-                <ul>
-                  <li><b>Drill in.</b> Start on the whole island, click a city, then a district, all the way down to the individual homes that sold. The colour scale re-fits itself at every level, so you never end up comparing one district against the entire country by accident.</li>
-                  <li><b>Per ping, not total.</b> A mansion and a studio can carry the same sticker price — one's just bigger. Per ping takes size out of it, which is why I lead with it; flip <b>Colour by</b> if you'd rather see the raw total.</li>
-                  <li><b>Look past the colour.</b> The <b>Records</b> tab is every sale behind a district, and the histogram at the bottom shows how tightly those prices bunch up — a wide spread means the median is hiding a lot.</li>
-                </ul>`,
-                findings: `<h2>What the data says</h2>
-                <p>Across <b>3.42 million</b> reported sales (Jan 2012 – Apr 2026), the median price per ping runs from about <b>NT$120,000</b> in the cheapest county (Chiayi County) up to roughly <b>NT$625,000</b> in Taipei City — a fivefold gap between the top and bottom city.</p>
-                <ul>
-                  <li>Drill to districts and the spread widens sharply: <b>Da'an</b> in central Taipei clears <b>NT$895,000</b> per ping, while the cheapest rural townships sit near <b>NT$55,000</b> — about a sixteenfold difference for the same square of floor.</li>
-                  <li>The dark almost never leaves the Taipei–New Taipei core. Price drops off steeply the moment you head south or inland.</li>
-                </ul>
-                <p><b>The takeaway:</b> "where's the pricey stuff" has a stubbornly simple answer — the capital region — and the real variation worth exploring is <em>within</em> it, one district at a time.</p>` } },
+                <p>Where does the money actually go? That is the whole question — and the map answers it in a single gesture: every area is shaded by its <b>median price per ping</b>, so the deeper a place runs, the more you are handing over for the same square of floor.</p>
+                <p class="lookFor"><b>What to watch:</b> follow the darkest shading inward as you drill, then flip <b>Colour by</b> to <em>total price</em> — you will see how much of that darkness is really just bigger homes.</p>
+                <p>Start on the whole island and keep clicking — a city, then a district, then the individual homes that changed hands. The colour re-fits itself at every level, so you are never quietly comparing one district against the entire country. I lead with price <em>per ping</em> on purpose: a mansion and a studio can wear the same sticker price, and only per-ping takes the size back out of it. And when a colour looks too tidy to trust, open the <b>Records</b> tab and the histogram beneath it — a wide spread is just the median hiding a crowd.</p>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>So where does it actually land? Across <b>3.42 million</b> reported sales, the median price per ping runs from about <b>NT$120,000</b> in the cheapest county — Chiayi — up to roughly <b>NT$625,000</b> in Taipei City. That is a fivefold gap before you have even left the level of whole cities.</p>
+                <p>Drill into districts and the distance only stretches: <b>Da'an</b>, in the middle of Taipei, clears <b>NT$895,000</b> a ping, while the quietest rural townships sit near <b>NT$55,000</b> — the same square of floor, sixteen times apart. The dark barely leaves the Taipei–New Taipei core; head south or inland and it drains away fast.</p>
+                <p>Which is the honest, slightly boring answer to "where's the pricey stuff" — the capital, again. The part worth wandering is not <em>whether</em> Taipei is dear, but <em>where inside it</em> the money pools, and that is a map you have to walk yourself.</p>` } },
   activity: { metric: "count", title: "Where's the market buzzing?",
               hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones.",
               read: {
                 guide: `<h2>Reading the activity map</h2>
-                <p>Some neighbourhoods see homes change hands constantly; in others, barely anything moves. This map is simply <b>how many homes actually sold</b> in each place — colour and bubble size climb together, so the busy markets are easy to pick out.</p>
-                <p class="lookFor"><b>What to look at:</b> the biggest, darkest bubbles are the high-volume markets — then flip <b>Colour by</b> to price to check whether busy also means expensive.</p>
-                <ul>
-                  <li><b>Drill into a city</b> to see which of its districts do the real volume.</li>
-                  <li><b>Watch it move.</b> Pop up the chart at the bottom and it's sales per month — the booms, the slumps, and the slow seasons in between.</li>
-                  <li><b>Busy isn't rich.</b> A market can be frantic and cheap at the same time. Flip <b>Colour by</b> to price and see for yourself — sometimes the busiest corner is the affordable one.</li>
-                </ul>`,
-                findings: `<h2>What the data says</h2>
-                <p>Of the <b>3.42 million</b> sales on the map, <b>New Taipei City</b> alone accounts for about <b>646,000</b> — roughly one in five of every home sold in the country.</p>
-                <ul>
-                  <li>Next come <b>Taichung</b> (~526,000) and <b>Taoyuan</b> (~478,000). Those three cities together are close to <b>half</b> of every sale on the map.</li>
-                  <li>Notice what's <em>missing</em> from that list: Taipei City, the priciest market, isn't in the top three for volume. The busiest markets are the big suburban cities, not the dearest central districts.</li>
-                </ul>
-                <p><b>The takeaway:</b> transaction volume tracks population and new-build supply, not price — where homes change hands most is where there are simply the most homes and the most building going on.</p>` } },
+                <p>Some neighbourhoods trade homes like a busy market stall; others sit still for months at a time. This map asks only one thing — <b>how many homes actually sold</b> in each place — and lets colour and bubble size climb together, so the busy corners are impossible to miss.</p>
+                <p class="lookFor"><b>What to watch:</b> the biggest, darkest bubbles are the high-volume markets — then flip <b>Colour by</b> to price and see whether busy also means dear (it often does not).</p>
+                <p>Click into a city to find which of its districts do the real trading, and pop the chart at the bottom to watch it move month by month — the booms, the lulls, the slow seasons in between. Busy and rich are two different questions, and this map only answers the first.</p>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>Where do homes change hands the most? Not quite where you might guess. Of the <b>3.42 million</b> sales on the map, <b>New Taipei City</b> alone accounts for about <b>646,000</b> — very nearly one in five homes sold in the whole country — with <b>Taichung</b> (~526,000) and <b>Taoyuan</b> (~478,000) close behind. Those three cities together are almost <b>half</b> of everything.</p>
+                <p>Notice the name that is missing: Taipei City, the priciest market of all, never enters the top three. The busiest places are the big suburban cities — the ones with the most people and the most cranes in the air — not the dearest central districts.</p>
+                <p>So volume turns out to be a story about supply, not price. A market can be frantic and cheap at the same time, and this map keeps quietly reminding you of it.</p>` } },
   size:     { metric: "ping",  title: "Where do you get room to breathe?",
               hint: "Coloured by the median living size in each area, measured in ping.",
               read: {
                 guide: `<h2>Reading the size map</h2>
-                <p>Price tells you what a home costs; this tells you what you actually get for it. Every area is shaded by its <b>median living size in ping</b> — darker means more room to breathe.</p>
-                <p class="lookFor"><b>What to look at:</b> hunt for districts that stay <em>dark for size</em> but turn <em>pale for price</em> — flip <b>Colour by</b> between the two to find them.</p>
-                <ul>
-                  <li><b>Hunt for value.</b> Flip <b>Colour by</b> between size and price. A district that stays dark for size but turns pale for price is exactly where your money buys the most floor.</li>
-                  <li><b>Get specific.</b> Drill in, open <b>Records</b>, and you'll find the real layouts — beds and baths — sitting behind that median.</li>
-                  <li>Living size already nets out the parking space, so it's genuine living room you're comparing, not garage.</li>
-                </ul>`,
-                findings: `<h2>What the data says</h2>
-                <p>Median living size by district spans a wide range — from about <b>9 ping</b> in the tightest urban districts to nearly <b>60 ping</b> in the roomiest ones. That's roughly a sixfold difference in the typical home.</p>
-                <ul>
-                  <li>The roomiest medians turn up in outer suburban and township districts; the smallest cluster in the dense city cores, where the per-ping price is highest.</li>
-                  <li>So size and price per ping tend to pull in <em>opposite</em> directions across the map — the places with the most floor are usually the cheapest per ping.</li>
-                </ul>
-                <p><b>The takeaway:</b> room to breathe and a low price per ping mostly travel together, out away from the centres. The thing you trade for both is the commute.</p>` } },
+                <p>Price tells you what a home costs; this tells you what you actually get. Every area is shaded by its <b>median living size in ping</b> — the deeper it runs, the more room there is to breathe.</p>
+                <p class="lookFor"><b>What to watch:</b> hunt for the districts that stay <em>dark for size</em> but turn <em>pale for price</em> — flip <b>Colour by</b> between the two, and that gap is exactly where your money buys the most floor.</p>
+                <p>Drill in and open <b>Records</b> to find the real layouts — the beds and baths — sitting behind that median. And the size here is genuine living space; the parking is already netted out of it, so you are comparing rooms to live in, not garages to park in.</p>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>How much does "a typical home" really change from place to place? More than you would think. The median living size by district runs from about <b>9 ping</b> in the tightest urban cores to nearly <b>60 ping</b> in the roomiest outer districts — a sixfold swing in what even counts as normal.</p>
+                <p>And the roominess almost always turns up out at the edges, in the suburbs and townships, exactly where the price per ping is lowest. Size and price pull in opposite directions across the map — the places with the most floor are usually the cheapest way to get it.</p>
+                <p>Which leaves one honest catch. Space and value tend to travel together, away from the centre — and the thing you quietly trade for both is the commute.</p>` } },
   clusters: { lisa: true,      title: "Where are the hot and cold pockets?",
               hint: "The map flags districts that are way pricier (red) or way cheaper (blue) than their neighbours.",
               read: {
                 guide: `<h2>Reading the hot-and-cold map</h2>
-                <p>This one isn't about price on its own — it's about a district against the company it keeps. The map asks a sharper question: is this place unusually pricey, or unusually cheap, <em>for where it sits</em>?</p>
-                <p class="lookFor"><b>What to look at:</b> the <em>edges</em> — a blue district wedged among red ones (or the reverse) is the real find, not the big blocks of one colour.</p>
-                <ul>
-                  <li><b>Red</b> is a huddle of expensive districts — a hot spot. <b>Blue</b> is a pocket of cheap ones. Faded means nothing statistically out of the ordinary.</li>
-                  <li>There's a real statistic underneath (a spatial one), so it throws out the noise and only flags patterns unlikely to be down to chance.</li>
-                  <li><b>Read the edges.</b> A blue district wedged between red ones is the underpriced pocket worth a closer look; a lone red one is a local peak, paying a premium for something.</li>
-                </ul>`,
-                findings: `<h2>What the data says</h2>
-                <p>Prices are strongly clustered in space — the global Moran's I comes out at about <b>0.71</b> (p ≈ 0.001). In plain terms: neighbouring districts move together far more than chance would allow, so this is a real pattern, not an artefact.</p>
-                <ul>
-                  <li>Running the local test (LISA, p&lt;0.05) across all <b>361</b> districts flags <b>31 hot-spot</b> districts (dear, ringed by dear) and <b>68 cold-spot</b> districts (cheap among cheap).</li>
-                  <li>Only about <b>13</b> districts are the genuine odd ones out — a cheap district hemmed in by pricey neighbours, or a lone expensive one. Those mismatches are the pockets worth a second look.</li>
-                </ul>
-                <p><b>The takeaway:</b> most of the map is exactly what its surroundings would predict. The signal isn't in the big red or blue blocks — it's in that small handful of districts that break from their neighbours.</p>` } },
+                <p>This one is not about price on its own — it is about a district against the company it keeps. The sharper question underneath: is this place unusually dear, or unusually cheap, <em>for where it sits</em>?</p>
+                <p class="lookFor"><b>What to watch:</b> the <em>edges</em>, not the big blocks — a blue district wedged in among red ones (or the reverse) is the real find.</p>
+                <p><b>Red</b> is a huddle of expensive districts, a hot spot; <b>blue</b> is a pocket of cheap ones; faded means nothing out of the ordinary. There is a genuine spatial statistic underneath, so it throws out the noise and only flags what is unlikely to be chance. A lone red district is paying a premium for something; a blue one ringed by red is the underpriced pocket worth a closer look.</p>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>Is any of this real, or just the eye finding the patterns it wants to see? The maths is oddly reassuring here — the global Moran's I comes out around <b>0.71</b> (p ≈ 0.001), which is high. In plain terms: neighbouring districts move together far more than chance would ever allow.</p>
+                <p>Run the local version of that test across all <b>361</b> districts and it flags <b>31 hot spots</b> — dear, ringed by dear — and <b>68 cold spots</b>, cheap among the cheap. Only about <b>13</b> are the true outliers: a bargain hemmed in by expensive neighbours, or a lone peak sticking up out of nowhere.</p>
+                <p>So most of the map is exactly what its surroundings would predict — unremarkable, in the most literal sense. The real signal is that small handful of districts that refuse to match their neighbours, and those are the ones worth chasing.</p>` } },
   mrt:      { question: "mrt", city: "a", mrt: true,
               title: "Does living near the MRT actually cost more?",
               hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station.",
               read: {
                 guide: `<h2>Reading the MRT map</h2>
-                <p>It's a common assumption that living near the metro costs more — this map is where you get to actually test it, one district at a time. It comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
-                <p class="lookFor"><b>What to look at:</b> click into a district and watch the palest dots (right on a station) against the deep ones (a walk out) — do the pale ones hug the lines?</p>
-                <ul>
-                  <li><b>Find your footing.</b> Taipei opens shaded by price. Click any district and every home inside it re-colours by <b>distance to the nearest MRT stop</b> — the palest dots are sitting right on top of a station, the deeper ones are a walk away.</li>
-                  <li><b>The lines are right there</b> on top of the map, so you can watch the dots hug them. Hover any dot for that exact home's distance and price.</li>
-                  <li><b>Prefer numbers?</b> The <b>Records</b> tab is every sale, and the histogram shows how that district's prices spread out.</li>
-                </ul>`,
-                findings: `<h2>What the data says</h2>
-                <p>Taking Taipei City's <b>247,000</b> geocoded home sales: homes within about <b>300 m</b> of a station sell at a median <b>NT$710,000</b> per ping, against roughly <b>NT$510,000</b> for homes more than a kilometre out — around a <b>40% premium</b>.</p>
-                <ul>
-                  <li>And it isn't simply that stations sit in the pricey districts. Compare each home only against others in its <em>own</em> district and the gap barely narrows — still about <b>39%</b>, across Taipei's districts.</li>
-                  <li>So the premium survives the most obvious confounder. It holds street by street, not just downtown-versus-suburb.</li>
-                </ul>
-                <p><b>The takeaway:</b> the proximity premium is real and sizeable — but it's still a <em>correlation</em>. Stations were built where demand was already high, and the newer towers with lifts and parking cluster around them, so the metro gets some of the credit that really belongs to the buildings.</p>` } },
+                <p>Does living near the metro actually cost more? Everyone seems sure that it does — so here is where you get to check, one district at a time. It all comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
+                <p class="lookFor"><b>What to watch:</b> click into a district and watch the palest dots — right on top of a station — against the deep ones a walk away. Do the pale ones cling to the lines?</p>
+                <p>Taipei opens shaded by price; click any district and every home re-colours by its <b>distance to the nearest MRT stop</b>. The lines sit right there on top, so you can watch the dots hug them, and hovering any dot gives you that exact home's distance and price. If you would rather have it in numbers, the <b>Records</b> tab and the histogram are right below.</p>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>So — is the hunch true? Mostly, yes. Take Taipei City's <b>247,000</b> geocoded sales: the homes within about <b>300 m</b> of a station sell at a median <b>NT$710,000</b> a ping, against roughly <b>NT$510,000</b> for the ones more than a kilometre out. Call it a <b>40% premium</b> for the short walk.</p>
+                <p>And it is not simply that the stations happen to sit in the dear districts — the tempting explanation. Compare each home only against its own district's neighbours and the gap barely flinches, still around <b>39%</b>. It holds street by street, not just downtown against suburb.</p>
+                <p>But here is the careful part, the honest one: that is a <em>correlation</em>, not a verdict. Stations were built where the demand already was, and the newer towers with their lifts and parking cluster in around them — so the metro quietly takes some of the credit that really belongs to the buildings. The premium is real; the reason is more crowded than it looks.</p>` } },
 };
 let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 
