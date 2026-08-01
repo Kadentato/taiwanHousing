@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=19" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=20" />
 </head>
 <body>
   <header class="appHeader">
@@ -108,11 +108,16 @@
     <div class="modalCard">
       <button class="modalClose" id="interpretClose" aria-label="Close">×</button>
       <div id="interpretBody" class="prose"></div>
+      <div class="modalNav">
+        <button id="interpretPrev" class="navBtn" hidden>← How to read it</button>
+        <span id="interpretDots" class="navDots" aria-hidden="true"></span>
+        <button id="interpretNext" class="navBtn primary">See what the data says →</button>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=52"></script>
+  <script src="scripts/appMain.js?v=53"></script>
 </body>
 </html>

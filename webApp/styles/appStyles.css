@@ -326,6 +326,34 @@ body.aboutBody { height: auto; min-height: 100vh; display: block; overflow: auto
 }
 .prose a { color: var(--accent); }
 .prose .backLink { margin-top: 30px; font-weight: 600; }
+/* First heading in a popup shouldn't carry the big top margin used between sections. */
+#interpretBody h2:first-child, #methodsBody h2:first-child { margin-top: 4px; }
+/* The "what to look at" callout at the top of each reading guide. */
+.prose .lookFor {
+  background: var(--accent-soft); border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 0 0 18px;
+  font-size: 14.5px; color: var(--accent-ink);
+}
+
+/* Two-page popup footer: back / dots / next. */
+.modalNav {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line);
+}
+.navBtn {
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  padding: 8px 15px; border-radius: 8px; transition: background .14s ease, border-color .14s ease;
+}
+.navBtn:hover { background: var(--panel); border-color: var(--edge); }
+.navBtn.primary { background: var(--accent); border-color: var(--accent); color: #fff; margin-left: auto; }
+.navBtn.primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); }
+.navDots { display: inline-flex; gap: 7px; }
+.navDots span {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--line);
+  transition: background .14s ease;
+}
+.navDots span.on { background: var(--accent); }
 
 /* ---------------------------------------------------------------- landing page --- */
 /* A calm, warm-paper personal-project page — deliberately low-key, easy on the eyes.
@@ -452,8 +480,8 @@ body.landingBody {
 .questionBannerText { flex: 1; font-size: 13.5px; line-height: 1.4; }
 .questionBannerText strong { font-weight: 700; margin-right: 8px; }
 .questionBannerText span { color: var(--accent-ink); }
-/* A small pastel-pink circle in the map's top-left corner (under the zoom +/-).
-   Click it for the popup that explains how to read the map. */
+/* A small pastel-pink circle in the map's top-right corner.
+   Click it for the two-page popup: how to read the map, then what the data says. */
 .readControl { margin-top: 8px !important; }
 .readControl a {
   display: grid; place-items: center; width: 32px; height: 32px;
