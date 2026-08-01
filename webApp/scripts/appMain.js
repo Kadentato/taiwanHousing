@@ -88,6 +88,30 @@ function quantile(arr, p) {
   return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (idx - lo);
 }
 
+// Snap a value to a familiar step — the nearest half-order-of-magnitude — so legend
+// breaks read like 50,000 rather than 49,333. Always lands on a multiple of 5×10^k
+// or 10×10^k (…, 45,000, 50,000, 100,000, 1,500,000, 2,000,000, …).
+function niceRound(v) {
+  if (v == null || !isFinite(v) || v === 0) return v;
+  const sign = v < 0 ? -1 : 1, a = Math.abs(v);
+  const step = Math.pow(10, Math.floor(Math.log10(a))) / 2;
+  return sign * Math.round(a / step) * step;
+}
+// Round every bin threshold, keeping the sequence strictly increasing (rounding can
+// collapse two close quantiles onto the same value — nudge the later one up a step).
+function roundBins(raw) {
+  const out = [];
+  for (const v of raw) {
+    let r = niceRound(v);
+    if (out.length && r <= out[out.length - 1]) {
+      const prev = out[out.length - 1];
+      r = prev + Math.pow(10, Math.floor(Math.log10(Math.abs(prev) || 1))) / 2;
+    }
+    out.push(r);
+  }
+  return out;
+}
+
 // 95% CI for the median. A district can hold 100k+ records, so for large n use the analytic
 // order-statistic interval (one sort) — an 800× bootstrap resample of 100k points freezes the tab.
 function bootstrapMedianCI(values, iters = 800) {
@@ -236,7 +260,7 @@ function quantileBins(values) {
   const s = values.filter((v) => v != null).sort((a, b) => a - b);
   if (s.length < 2) return s.length ? [s[0]] : [];
   const q = (p) => s[Math.min(s.length - 1, Math.floor(p * s.length))];
-  return [q(0.17), q(0.34), q(0.5), q(0.67), q(0.84)];
+  return roundBins([q(0.17), q(0.34), q(0.5), q(0.67), q(0.84)]);
 }
 function colorFor(value, bins) {
   if (value == null) return NO_DATA;
