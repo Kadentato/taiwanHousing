@@ -1173,8 +1173,6 @@ function wireControls() {
     if (!e.target.dataset.view) return;
     setView(e.target.dataset.view);
   };
-  const bannerClose = document.getElementById("questionBannerClose");
-  if (bannerClose) bannerClose.onclick = () => { document.getElementById("questionBanner").hidden = true; };
   document.getElementById("chartCollapse").onclick = (e) => {
     const panel = document.getElementById("chartPanel");
     const collapsed = panel.classList.toggle("collapsed");

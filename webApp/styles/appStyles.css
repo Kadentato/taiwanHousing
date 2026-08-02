@@ -505,8 +505,3 @@ body.landingBody {
   transition: background .14s ease, border-color .14s ease, transform .14s ease;
 }
 .readControl a:hover { background: #f9c2d6; border-color: #ec8bad; transform: scale(1.08); }
-.questionBannerClose {
-  border: 0; background: transparent; color: #2c4d45; font-size: 20px; line-height: 1;
-  cursor: pointer; padding: 0 4px; flex-shrink: 0; border-radius: 6px;
-}
-.questionBannerClose:hover { background: rgba(63, 125, 112, .14); }
