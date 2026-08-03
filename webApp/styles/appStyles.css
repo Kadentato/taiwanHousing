@@ -487,6 +487,10 @@ body.landingBody {
 .questionBannerText span { color: var(--accent-ink); }
 /* A small pastel-pink circle in the map's top-right corner.
    Click it for the two-page popup: how to read the map, then what the data says. */
+/* Skyscraper icons for the "do taller cities cost more?" map — drawn to scale by height. */
+.leaflet-div-icon.towerIcon { background: transparent; border: 0; }
+.towerIcon svg { display: block; filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }
+
 /* Self-updating build marker, bottom-left. Confirms which assets the browser loaded. */
 .buildTag {
   position: fixed; left: 8px; bottom: 6px; z-index: 1200;

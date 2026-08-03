@@ -33,8 +33,39 @@ const state = {
   fixedScale: false,    // fixed vs adaptive colour bins
   colorMode: "metric",  // "metric" | "lisa"
   showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
+  showTowers: false,    // "do taller cities cost more?" — skyscraper icons over the city choropleth
   question: null,       // active landing-page question (e.g. "mrt"), drives preset behaviour
 };
+
+// Tallest completed, habitable building per city/county — architectural height in metres
+// (to the structural top, antennas excluded). Industrial smokestacks and power-plant stacks
+// are deliberately left out so the icon reads as a *building*. Compiled from public sources
+// (zh/en Wikipedia tallest-building lists); a few are the best available (temple / under
+// construction) but none is a chimney. Keyed by cityCode.
+const TOWERS = {
+  a: { en: "Taipei 101",                         m: 508 },
+  b: { en: "Taichung Commercial Bank HQ",        m: 225 },
+  c: { en: "Crown Building",                     m: 147.5 },
+  d: { en: "Shangri-La Far Eastern Plaza Hotel", m: 140 },
+  e: { en: "85 Sky Tower",                       m: 347.5 },
+  f: { en: "Far Eastern Mega Tower",             m: 220.6 },
+  g: { en: "Hongcheng World Bay",                m: 105.8 },
+  h: { en: "ChungYuet Royal Landmark",           m: 153.3 },
+  i: { en: "Furongvoco Hotel",                   m: 142 },
+  j: { en: "Fengyee Fengcai 520",                m: 128.8 },
+  k: { en: "Zhunan Shangde Hui",                 m: 92.1 },
+  m: { en: "Zhongtai Chan Temple",               m: 136 },
+  n: { en: "Qiaoyou Tower",                      m: 114 },
+  o: { en: "Fengyee Cloud Wisdom",               m: 136.7 },
+  p: { en: "Bai-Li Flower Garden Plaza",         m: 59 },
+  q: { en: "Jianan First Landscape",             m: 64.2 },
+  t: { en: "Dongshanhe International",            m: 63.7 },
+  u: { en: "Jessie Ameli Hotel",                 m: 96.3 },
+  v: { en: "Guitian Sheraton",                   m: 64.3 },
+  w: { en: "Ever Rich Jinhu Hotel",              m: 58.7 },
+  x: { en: "Wenk Premier",                       m: 58 },
+};
+const TOWERS_MAX = 508;   // Taipei 101 — the icon-size reference
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
 const viewStack = [];   // drill history for Esc (each entry restores level+scope+map view)
@@ -72,7 +103,7 @@ const store = {
 };
 
 let map, dataLayer, legend, chart;
-let mrtLayer = null, mrtControl = null, readControl = null;
+let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
@@ -381,7 +412,11 @@ function renderMap() {
   }
 
   if (lisaMode) updateLisaLegend();
-  else updateLegend(bins, metric, null, state.level === "district");
+  else {
+    const note = (state.showTowers && state.level === "city")
+      ? "🏙️ icon height ∝ each region's tallest building" : null;
+    updateLegend(bins, metric, note, state.level === "district");
+  }
 }
 
 function updateLisaLegend() {
@@ -958,6 +993,7 @@ function renderAll() {
   if (state.view === "table") { renderTable(); return; }
   renderMap();
   updateMrtVisibility();
+  updateTowerVisibility();
   renderChart();
 }
 
@@ -1043,6 +1079,55 @@ async function setMrt(on) {
     } catch (e) { console.error("MRT overlay failed to load", e); }
   } else if (mrtLayer && map.hasLayer(mrtLayer)) {
     mrtLayer.remove();
+  }
+}
+
+// ------------------------------------------------ tallest-building overlay ---
+// "Do taller cities cost more?" — one skyscraper icon per city/county at its centroid,
+// drawn to scale by the region's tallest building (TOWERS), over the price-per-ping choropleth.
+function cityCentroid(feature) {
+  return L.geoJSON(feature).getBounds().getCenter();
+}
+// An SVG skyscraper whose rendered height is proportional to the building's metres, so the
+// icon size *is* the data. Same silhouette at every size — only the scale changes.
+function towerIcon(metres) {
+  const h = Math.round(24 + (metres / TOWERS_MAX) * 52);   // px: ~24 (shortest) → 76 (Taipei 101)
+  const w = Math.round(h * 0.46);
+  let windows = "";
+  for (let ry = 20; ry <= 86; ry += 8)
+    for (let cx = 15; cx <= 25; cx += 5)
+      windows += `<rect x="${cx}" y="${ry}" width="2.6" height="3.6" rx="0.4"/>`;
+  const svg =
+    `<svg viewBox="0 0 42 100" width="${w}" height="${h}" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">`
+    + `<g fill="#3f7d70" stroke="#26493f" stroke-width="1.6" stroke-linejoin="round">`
+    + `<rect x="19.4" y="3" width="3.2" height="12"/>`                       // spire
+    + `<polygon points="12,15 30,15 30,99 12,99"/>`                          // tower body
+    + `</g>`
+    + `<g fill="#eaf3ef" opacity="0.92">${windows}</g>`
+    + `</svg>`;
+  return L.divIcon({ className: "towerIcon", html: svg, iconSize: [w, h], iconAnchor: [w / 2, h] });
+}
+function buildTowerLayer() {
+  if (!map.getPane("towers")) { map.createPane("towers"); map.getPane("towers").style.zIndex = 640; }
+  const markers = [];
+  for (const f of store.geom.city.values()) {
+    const t = TOWERS[f.properties.cityCode];
+    if (!t) continue;
+    const mk = L.marker(cityCentroid(f), { pane: "towers", icon: towerIcon(t.m), keyboard: false });
+    mk.bindTooltip(`${f.properties.cityEn} — ${t.en} · ${t.m} m`,
+      { direction: "top", className: "mapLabel", offset: [0, -6] });
+    markers.push(mk);
+  }
+  return L.layerGroup(markers);
+}
+// Only meaningful at the all-cities level; hidden once you drill into a single city's districts.
+function updateTowerVisibility() {
+  const show = state.showTowers && state.level === "city" && state.view === "map";
+  if (show) {
+    if (!towerLayer) towerLayer = buildTowerLayer();
+    if (!map.hasLayer(towerLayer)) towerLayer.addTo(map);
+  } else if (towerLayer && map.hasLayer(towerLayer)) {
+    towerLayer.remove();
   }
 }
 
@@ -1401,6 +1486,26 @@ const QUESTION_PRESETS = {
                   <li>And it is not simply that stations sit in the dear districts: compare each home only against its own district's neighbours and the gap barely flinches, still around <b>39%</b>.</li>
                 </ul>
                 <p>But here is the careful part, the honest one: that is a <em>correlation</em>, not a verdict. Stations were built where the demand already was, and the newer towers with their lifts and parking cluster in around them — so the metro quietly takes some of the credit that really belongs to the buildings. The premium is real; the reason is more crowded than it looks.</p>` } },
+  towers:   { metric: "unit", towers: true,
+              title: "Do taller cities cost more?",
+              hint: "Each region's tallest building drawn to scale as a skyscraper, sitting over the price-per-ping colour.",
+              read: {
+                guide: `<h2>Reading the skyline map</h2>
+                <p>Does a city's tallest tower tell you anything about what its homes cost? Every city and county carries one skyscraper icon, drawn to scale — the taller its tallest building, the bigger the icon — sitting on top of the usual <b>price-per-ping</b> colour.</p>
+                <p class="lookFor"><b>What to watch:</b> look for the big icons parked on the darkest cities — that pairing is the whole question. The mismatches are just as telling.</p>
+                <ul>
+                  <li>Icon size is the <em>architectural height</em> of each region's tallest habitable building — Taipei 101 at 508 m towers over the lot; chimneys and power-plant stacks are deliberately left out so it reads as a building.</li>
+                  <li>The colour underneath is the same median price per ping as the other maps, so a tall icon on a pale city (or a stubby one on a dark one) is a place that breaks the pattern.</li>
+                  <li>Hover any icon for the building's name and height.</li>
+                </ul>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>So — does a city's skyline predict its price tag? Loosely, yes, though Taipei is holding most of the story up.</p>
+                <ul>
+                  <li>Line each region's tallest building up against its price per ping and the fit looks strong: <b>r ≈ 0.84</b>, about <b>70%</b> of the variation. But Taipei — Taipei 101 at 508 m <em>and</em> the dearest market by a mile — is doing most of the lifting; drop it and the linear fit sags to <b>r ≈ 0.53</b>.</li>
+                  <li>The rank-based measure is steadier, and probably the honest one: <b>Spearman ρ ≈ 0.67</b>, barely flinching to 0.62 without Taipei. The ordering mostly holds — taller cities are, more often than not, the pricier ones.</li>
+                  <li>The exceptions are the interesting part. <b>Kaohsiung</b> owns the second-tallest building in the country (347 m) on merely mid-tier prices, while stub-towered <b>Kinmen</b> (59 m) runs expensive on island scarcity alone.</li>
+                </ul>
+                <p>Read it as a symptom, not a cause — a tall skyline is what a big, dense, moneyed city grows, not the reason its homes cost what they do. The tower and the price tag are both children of the same demand, which makes height a decent hunch and a poor valuation.</p>` } },
 };
 let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 
@@ -1436,6 +1541,7 @@ function applyUrlPreset() {
     state.showMrt = true;
     ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
   }
+  if (preset.towers) state.showTowers = true;
   setQuestionBanner(preset);
 }
 
