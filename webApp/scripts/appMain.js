@@ -407,9 +407,14 @@ function renderMap() {
     dataLayer = L.geoJSON(fc, {
       renderer: polyRenderer,
       // Stroke each polygon in its OWN fill colour (not white): a white border reads as a "crack"
-      // between neighbours, and the stroke also slightly dilates each polygon to cover antialiasing
-      // seams where neighbours meet. Same idea as edgecolor="face" on the README map.
-      style: (f) => { const c = fillFor(f); return { fillColor: c, color: c, weight: 1, fillOpacity: 1 }; },
+      // between neighbours, and the stroke dilates each polygon to cover the antialiasing seams
+      // where neighbours meet. Same idea as edgecolor="face" on the README map. The stroke is in
+      // screen pixels (constant across zoom) while the polygons grow, so a 1px stroke stops covering
+      // the seams once you zoom in — weight 2 with round joins keeps them sealed at every zoom.
+      style: (f) => {
+        const c = fillFor(f);
+        return { fillColor: c, color: c, weight: 2, fillOpacity: 1, lineJoin: "round", lineCap: "round" };
+      },
       onEachFeature: onEach,
     }).addTo(map);
   }
