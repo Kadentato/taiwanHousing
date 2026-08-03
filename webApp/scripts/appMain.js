@@ -102,7 +102,7 @@ const store = {
   districtById: new Map(),
 };
 
-let map, dataLayer, legend, chart;
+let map, dataLayer, choroBacking, legend, chart;
 let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
@@ -358,6 +358,12 @@ function globalBins(metricKey) {
 
 function renderMap() {
   if (dataLayer) { dataLayer.remove(); dataLayer = null; }
+  if (choroBacking) { choroBacking.remove(); choroBacking = null; }
+  // Leaflet leaves a permanent tooltip's DOM node in the pane even after its layer is removed
+  // (unbindTooltip clears the reference but not the element), so the map labels would otherwise
+  // pile up and double every render. Sweep any leftover map labels before drawing fresh ones.
+  const tooltipPane = map.getPane("tooltipPane");
+  if (tooltipPane) tooltipPane.querySelectorAll(".leaflet-tooltip.mapLabel").forEach((el) => el.remove());
   if (state.level === "houses") { renderHouses(); return; }
 
   // mrtDist is a per-home metric with no district/city aggregate — fall back to unit price
@@ -404,17 +410,24 @@ function renderMap() {
       onEachFeature: onEach,
     }).addTo(map);
   } else {
-    dataLayer = L.geoJSON(fc, {
-      renderer: polyRenderer,
-      // Stroke each polygon in its OWN fill colour (not white): a white border reads as a "crack"
-      // between neighbours, and the stroke dilates each polygon to cover the antialiasing seams
-      // where neighbours meet. Same idea as edgecolor="face" on the README map. The stroke is in
-      // screen pixels (constant across zoom) while the polygons grow, so a 1px stroke stops covering
-      // the seams once you zoom in — weight 2 with round joins keeps them sealed at every zoom.
+    // Two layers beat the "white cracks" without chunky borders. The BACKING draws each polygon
+    // with a fat same-colour stroke, so any sub-pixel gap between neighbours is filled by an
+    // adjacent region's colour rather than the white basemap (a single fat-stroked layer would do
+    // this too, but neighbours' strokes overpaint each other and the borders turn jagged). The TOP
+    // layer then draws the real fills with NO stroke, so the boundaries stay crisp and natural —
+    // it only leaves a hairline seam, and that seam now reveals the colour backing, not white.
+    // Backing added first (below), crisp top second (above). Tracked separately (not in a
+    // layerGroup) so dataLayer stays a plain geoJSON whose tooltips clean up on removal.
+    choroBacking = L.geoJSON(fc, {
+      renderer: polyRenderer, interactive: false,
       style: (f) => {
         const c = fillFor(f);
-        return { fillColor: c, color: c, weight: 2, fillOpacity: 1, lineJoin: "round", lineCap: "round" };
+        return { fillColor: c, color: c, weight: 4, fillOpacity: 1, lineJoin: "round", lineCap: "round" };
       },
+    }).addTo(map);
+    dataLayer = L.geoJSON(fc, {
+      renderer: polyRenderer,
+      style: (f) => ({ fillColor: fillFor(f), stroke: false, fillOpacity: 1 }),
       onEachFeature: onEach,
     }).addTo(map);
   }
