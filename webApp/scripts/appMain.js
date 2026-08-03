@@ -103,7 +103,7 @@ const store = {
 };
 
 let map, dataLayer, legend, chart;
-let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null;
+let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
@@ -387,6 +387,9 @@ function renderMap() {
     const label = featureLabel(feature);
     if (label) {
       if (state.level === "district") layer.bindTooltip(label, { direction: "top", className: "mapLabel" });
+      else if (state.showTowers)
+        // A skyscraper icon sits on the centroid, so drop the name just below it, out of the tower.
+        layer.bindTooltip(label, { permanent: true, direction: "bottom", offset: [0, 8], className: "mapLabel" });
       else layer.bindTooltip(label, { permanent: true, direction: "center", className: "mapLabel" });
     }
   };
@@ -992,9 +995,20 @@ function renderAll() {
   renderStats();
   if (state.view === "table") { renderTable(); return; }
   renderMap();
+  updateLabelsVisibility();
   updateMrtVisibility();
   updateTowerVisibility();
   renderChart();
+}
+
+// The basemap ships its own place-name labels. At the all-cities level our permanent tooltips
+// already name every region, so the basemap labels just double them up (and collide with the
+// tower icons) — hide them there, and bring them back once drilled in for street/area context.
+function updateLabelsVisibility() {
+  if (!labelsLayer) return;
+  const hide = state.level === "city" && state.view === "map";
+  if (hide && map.hasLayer(labelsLayer)) map.removeLayer(labelsLayer);
+  else if (!hide && !map.hasLayer(labelsLayer)) labelsLayer.addTo(map);
 }
 
 // ----------------------------------------------------------- MRT overlay ---
@@ -1575,7 +1589,7 @@ async function init() {
   map.createPane("labels");
   map.getPane("labels").style.zIndex = 650;            // above the vector overlay pane (z-index 600)
   map.getPane("labels").style.pointerEvents = "none";  // let clicks pass through to the districts
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
+  labelsLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png", {
     subdomains: "abcd", maxZoom: 19, pane: "labels",
   }).addTo(map);
 
