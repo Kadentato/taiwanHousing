@@ -1487,7 +1487,7 @@ const QUESTION_PRESETS = {
                 </ul>
                 <p>But here is the careful part, the honest one: that is a <em>correlation</em>, not a verdict. Stations were built where the demand already was, and the newer towers with their lifts and parking cluster in around them — so the metro quietly takes some of the credit that really belongs to the buildings. The premium is real; the reason is more crowded than it looks.</p>` } },
   towers:   { metric: "unit", towers: true,
-              title: "Do taller cities cost more?",
+              title: "Taller tower, pricier city?",
               hint: "Each region's tallest building drawn to scale as a skyscraper, sitting over the price-per-ping colour.",
               read: {
                 guide: `<h2>Reading the skyline map</h2>
