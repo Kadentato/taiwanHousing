@@ -28,6 +28,30 @@ const columnsOf = (t) => {
   return r.length ? r[0].values.map((v) => v[1]) : [];
 };
 
+// One-click example queries, so someone who's never written SQL can still get an answer.
+// Kept single-line to fit the query box; each is a real, runnable question.
+const EXAMPLES = [
+  { label: "Busiest cities",
+    sql: "SELECT c.nameEn AS city, COUNT(*) AS sales_in_sample FROM houses h JOIN cities c ON c.cityId = h.cityId GROUP BY h.cityId ORDER BY sales_in_sample DESC" },
+  { label: "Priciest cities",
+    sql: "SELECT c.nameEn AS city, ROUND(AVG(h.unitPricePerM2 * 3.305785)) AS avg_price_per_ping, COUNT(*) AS sales FROM houses h JOIN cities c ON c.cityId = h.cityId WHERE h.unitPricePerM2 BETWEEN 15000 AND 1500000 GROUP BY h.cityId ORDER BY avg_price_per_ping DESC" },
+  { label: "3-bed homes with parking",
+    sql: "SELECT c.nameEn AS city, d.nameEn AS district, h.bedrooms AS beds, ROUND(h.livingAreaPing) AS size_ping, ROUND(h.totalPrice / 10000) AS price_10k_NTD FROM houses h JOIN districts d ON d.districtId = h.districtId JOIN cities c ON c.cityId = h.cityId WHERE h.bedrooms = 3 AND h.hasParking = 1 AND h.totalPrice BETWEEN 1000000 AND 100000000 ORDER BY h.totalPrice ASC LIMIT 100" },
+  { label: "Peek at the raw table",
+    sql: "SELECT * FROM houses LIMIT 100" },
+];
+function buildExamples() {
+  const host = $("dbExamples");
+  if (!host) return;
+  for (const ex of EXAMPLES) {
+    const b = document.createElement("button");
+    b.className = "exBtn";
+    b.textContent = ex.label;
+    b.onclick = () => { $("sqlBox").value = ex.sql; runSql(); };
+    host.appendChild(b);
+  }
+}
+
 function buildChips() {
   const host = $("tableChips");
   host.innerHTML = "";
@@ -127,6 +151,7 @@ async function init() {
     db = new SQL.Database(new Uint8Array(await res.arrayBuffer()));
     status("");
     buildChips();
+    buildExamples();
     wire();
     const first = document.querySelector(".tableChip");
     if (first) first.click();

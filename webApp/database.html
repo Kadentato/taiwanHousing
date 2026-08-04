@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Raw database — Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="styles/appStyles.css?v=27" />
+  <style>
+    .dbExamples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 2px; }
+    .dbExamples .exLead { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+    .exBtn {
+      font: inherit; font-size: 12.5px; cursor: pointer;
+      background: var(--accent-soft); color: var(--accent-ink);
+      border: 1px solid #c3d9d2; border-radius: 999px; padding: 5px 12px;
+      transition: background .14s ease, border-color .14s ease;
+    }
+    .exBtn:hover { background: #d8e7e1; border-color: var(--accent); }
+  </style>
 </head>
 <body class="dbBody">
   <header class="appHeader">
@@ -13,7 +24,7 @@
         <span class="brandIcon" aria-hidden="true">🏠</span>
         <h1>Taiwan Housing Explorer</h1>
       </a>
-      <p class="subtitle">The real SQLite schema, running in your browser — write your own SQL against it</p>
+      <p class="subtitle">The database, right in your browser — click a table to browse, or run your own SQL</p>
     </div>
     <a class="headerLink" href="explorer.html">← Back to the map</a>
   </header>
@@ -25,6 +36,7 @@
       <a href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener" style="color:var(--accent-ink);font-weight:600">GitHub</a>
       and the <a href="about.html" style="color:var(--accent-ink);font-weight:600">About page</a>.</p>
     <div class="tableChips" id="tableChips"></div>
+    <div class="dbExamples" id="dbExamples"><span class="exLead">New to SQL? Try one:</span></div>
     <div class="dbSqlBar">
       <input id="sqlBox" class="sqlBox" spellcheck="false"
              placeholder="SELECT * FROM houses LIMIT 100  (Enter to run)" />
@@ -42,6 +54,6 @@
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
-  <script src="scripts/dbBrowser.js?v=2"></script>
+  <script src="scripts/dbBrowser.js?v=3"></script>
 </body>
 </html>

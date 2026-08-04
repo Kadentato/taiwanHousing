@@ -483,7 +483,12 @@ body.landingBody {
 
 /* Skyscraper icons for the "do taller cities cost more?" map — drawn to scale by height. */
 .leaflet-div-icon.towerIcon { background: transparent; border: 0; }
-.towerIcon svg { display: block; filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }
+.towerIcon svg {
+  display: block;
+  /* thin white outline keeps overlapping towers distinct and lifts them off dark cities, plus a soft shadow */
+  filter: drop-shadow(.7px 0 0 #fff) drop-shadow(-.7px 0 0 #fff) drop-shadow(0 .7px 0 #fff)
+          drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
+}
 
 /* Self-updating build marker, bottom-left. Confirms which assets the browser loaded. */
 .buildTag {

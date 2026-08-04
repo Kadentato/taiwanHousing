@@ -1146,7 +1146,7 @@ function cityCentroid(feature) {
 // An SVG skyscraper whose rendered height is proportional to the building's metres, so the
 // icon size *is* the data. Same silhouette at every size — only the scale changes.
 function towerIcon(metres) {
-  const h = Math.round(24 + (metres / TOWERS_MAX) * 52);   // px: ~24 (shortest) → 76 (Taipei 101)
+  const h = Math.round(18 + (metres / TOWERS_MAX) * 46);   // px height ∝ building height (~23 shortest → 64 Taipei 101)
   const w = Math.round(h * 0.46);
   let windows = "";
   for (let ry = 20; ry <= 86; ry += 8)
@@ -1168,7 +1168,8 @@ function buildTowerLayer() {
   for (const f of store.geom.city.values()) {
     const t = TOWERS[f.properties.cityCode];
     if (!t) continue;
-    const mk = L.marker(cityCentroid(f), { pane: "towers", icon: towerIcon(t.m), keyboard: false });
+    const mk = L.marker(cityCentroid(f), { pane: "towers", icon: towerIcon(t.m), keyboard: false,
+      riseOnHover: true, zIndexOffset: Math.round((TOWERS_MAX - t.m) * 10) });   // shorter towers on top so none hide behind Taipei's
     mk.bindTooltip(`${f.properties.cityEn} — ${t.en} · ${t.m} m`,
       { direction: "top", className: "mapLabel", offset: [0, -6] });
     markers.push(mk);
