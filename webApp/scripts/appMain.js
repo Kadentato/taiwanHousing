@@ -459,7 +459,7 @@ function updateLisaLegend() {
 // freeze the map as individual Leaflet markers. We draw every point onto a single overlay
 // canvas (culling to the viewport) and click-test the nearest point for its tooltip.
 const PointCanvas = L.Layer.extend({
-  initialize(pts, radius) { this._pts = pts; this._r = radius; },
+  initialize(pts, radius, alpha) { this._pts = pts; this._r = radius; this._alpha = alpha || 1; },
   onAdd(map) {
     this._map = map;
     const c = this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-hide");
@@ -479,13 +479,15 @@ const PointCanvas = L.Layer.extend({
     L.DomUtil.setPosition(this._canvas, map.containerPointToLayerPoint([0, 0]));
     this._canvas.width = size.x; this._canvas.height = size.y;
     const ctx = this._canvas.getContext("2d"), b = map.getBounds(), r = this._r;
+    ctx.globalAlpha = this._alpha;   // a touch of transparency when dots vary in size, so overlaps read
     for (const p of this._pts) {
       if (p.lat < b.getSouth() || p.lat > b.getNorth() || p.lon < b.getWest() || p.lon > b.getEast()) continue;
       const pt = map.latLngToContainerPoint([p.lat, p.lon]);
-      ctx.beginPath(); ctx.arc(pt.x, pt.y, r, 0, 6.2832);
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, p.r || r, 0, 6.2832);
       ctx.fillStyle = p.color; ctx.fill();
       ctx.lineWidth = 0.4; ctx.strokeStyle = "rgba(30,41,59,0.5)"; ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   },
   _onClick(e) {
     let best = null, bestD = 100;                 // within ~10px
@@ -521,6 +523,22 @@ function renderHouses() {
   const NEAR_R = 0.0022;      // ~220 m jitter around a borrowed real address
 
   const radius = rs.length > 20000 ? 2.5 : rs.length > 5000 ? 3.2 : 4;
+  // MRT question: colour already encodes distance to the nearest station, so add a SECOND channel —
+  // dot size = price per ping — and each home shows both variables at once (near + pricey = pale + big).
+  const bivariate = state.metric === "mrtDist";
+  let priceR = null;
+  if (bivariate) {
+    const pv = METRIC.unit.values(rs);
+    const pLo = quantile(pv, 0.05), pHi = quantile(pv, 0.95);   // clip the extremes so a few outliers don't flatten the scale
+    const rMin = rs.length > 20000 ? 2 : rs.length > 5000 ? 2.6 : 3;
+    const rMax = rs.length > 20000 ? 5 : rs.length > 5000 ? 6 : 7.5;
+    priceR = (rec) => {
+      const p = METRIC.unit.val(rec);
+      if (p == null || pHi <= pLo) return (rMin + rMax) / 2;
+      const t = Math.max(0, Math.min(1, (p - pLo) / (pHi - pLo)));
+      return rMin + (rMax - rMin) * t;
+    };
+  }
   let realN = 0;
   const pts = rs.map((r, i) => {
     const v = metric.val(r);
@@ -538,18 +556,20 @@ function renderHouses() {
         plat = lat + rad * Math.sin(angle); plon = lon + rad * Math.cos(angle) / cosLat;
       }
     }
-    return { lat: plat, lon: plon, color: v == null ? NO_DATA : colorFor(v, bins), rec: r };
+    return { lat: plat, lon: plon, color: v == null ? NO_DATA : colorFor(v, bins), rec: r,
+             r: bivariate ? priceR(r) : radius };
   });
-  dataLayer = new PointCanvas(pts, radius).addTo(map);
-  updateLegend(bins, metric,
-    `${rs.length.toLocaleString()} individual ${state.type} homes · click a dot for details, `
-    + `coloured by ${metric.short} · `
-    + (realN === rs.length
-        ? `every dot at its real address (門牌 geocoded)`
-        : realN
-            ? `${Math.round(realN / rs.length * 100)}% at their real address (門牌 geocoded); `
-              + `the rest ${scatterToReal ? "scattered among them" : "spread near the district centre"}`
-            : `positions spread within the district (no exact addresses in the open data)`));
+  dataLayer = new PointCanvas(pts, radius, bivariate ? 0.85 : 1).addTo(map);
+  const geoNote = realN === rs.length
+      ? `every dot at its real address (門牌 geocoded)`
+      : realN
+          ? `${Math.round(realN / rs.length * 100)}% at their real address (門牌 geocoded); `
+            + `the rest ${scatterToReal ? "scattered among them" : "spread near the district centre"}`
+          : `positions spread within the district (no exact addresses in the open data)`;
+  const note = bivariate
+    ? `${rs.length.toLocaleString()} homes · <b>colour</b> = distance to the MRT, <b>size</b> = price per ping · click any dot for both · ${geoNote}`
+    : `${rs.length.toLocaleString()} individual ${state.type} homes · click a dot for details, coloured by ${metric.short} · ${geoNote}`;
+  updateLegend(bins, metric, note, bivariate, bivariate ? "bigger = pricier / ping" : undefined);
 }
 
 // Popup for a single transaction (individual house drill-in).
@@ -646,7 +666,7 @@ async function drillInto(feature) {
   viewStack.pop(); // houses are leaves — nothing to drill; undo the push
 }
 
-function updateLegend(bins, metric, note, showSize) {
+function updateLegend(bins, metric, note, showSize, sizeLabel) {
   if (legend) legend.remove();
   legend = L.control({ position: "bottomright" });
   legend.onAdd = () => {
@@ -665,7 +685,7 @@ function updateLegend(bins, metric, note, showSize) {
     html += `<div><i style="background:${NO_DATA}"></i>No data</div>`;
     if (showSize) html += `<div class="legendSize"><svg width="76" height="24">`
       + `<circle cx="9" cy="17" r="4" fill="#9ca3af"/><circle cx="30" cy="14" r="7" fill="#9ca3af"/>`
-      + `<circle cx="58" cy="12" r="11" fill="#9ca3af"/></svg><span>bubble size ∝ n</span></div>`;
+      + `<circle cx="58" cy="12" r="11" fill="#9ca3af"/></svg><span>${sizeLabel || "bubble size ∝ n"}</span></div>`;
     if (note) html += `<div class="legendNote">${note}</div>`;
     div.innerHTML = html;
     return div;
