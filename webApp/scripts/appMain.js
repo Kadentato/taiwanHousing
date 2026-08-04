@@ -1535,9 +1535,9 @@ const QUESTION_PRESETS = {
               read: {
                 guide: `<h2>Reading the MRT map</h2>
                 <p>Does living near the metro actually cost more? Everyone seems sure that it does — so here is where you get to check, one district at a time. It all comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
-                <p class="lookFor"><b>What to watch:</b> click into a district and watch the palest dots — right on top of a station — against the deep ones a walk away. Do the pale ones cling to the lines?</p>
+                <p class="lookFor"><b>What to watch:</b> once you click into a district each home shows both variables at once — <em>colour</em> is its distance to the nearest station, dot <em>size</em> is its price per ping — so the whole question becomes: are the pale (near) dots also the big (pricey) ones?</p>
                 <ul>
-                  <li>Taipei opens shaded by price; click any district and every home re-colours by its <b>distance to the nearest MRT stop</b>.</li>
+                  <li>Taipei opens shaded by price; click any district and every home re-draws in two channels — <b>colour</b> for how far it sits from the nearest MRT stop, <b>size</b> for what it costs per ping.</li>
                   <li>The lines sit right there on top, so you can watch the dots hug them — hover any dot for that exact home's distance and price.</li>
                   <li>Prefer it in numbers? The <b>Records</b> tab and the histogram are right below.</li>
                 </ul>`,
