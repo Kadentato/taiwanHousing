@@ -404,13 +404,15 @@ body.landingBody {
 .landingHero p { font-size: 17.5px; color: #675f52; margin: 0 auto; max-width: 560px; line-height: 1.55; }
 .landingHero p .wink { font-style: italic; color: #857a67; }
 
-.landingSectionLabel {
-  display: flex; align-items: center; gap: 12px;
-  font-size: 15px; font-weight: 650; color: #5c5445; margin: 44px 2px 16px;
-}
-.landingSectionLabel::after { content: ""; flex: 1; height: 1px; background: rgba(60, 52, 40, .12); }
+.questionGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 26px; }
 
-.questionGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+/* "Start here" chip on the first question card. */
+.questionCard .qTag {
+  position: absolute; top: 15px; right: 15px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--accent-ink); background: rgba(63, 125, 112, .14);
+  padding: 3px 9px; border-radius: 999px;
+}
 
 .questionCard {
   position: relative; display: flex; flex-direction: column; text-decoration: none; color: inherit;
@@ -433,44 +435,16 @@ body.landingBody {
 .questionCard .qGo { margin-top: 16px; font-size: 13.5px; font-weight: 620; color: var(--accent-ink); }
 .questionCard:hover .qGo { text-decoration: underline; }
 
-/* Flagship — set apart by a soft accent tint and a rule, not brightness. */
-.questionCard.flagship {
-  grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 24px;
-  background: #eaf0ed; border-color: rgba(63, 125, 112, .28);
-  border-left: 3px solid var(--accent); padding: 26px 28px;
-}
-.questionCard.flagship .qEmoji {
-  width: 60px; height: 60px; font-size: 30px; flex-shrink: 0;
-  background: rgba(63, 125, 112, .13); border-radius: 16px; margin: 0;
-}
-.questionCard.flagship .qBody { flex: 1; }
-.questionCard.flagship h3 { font-size: 22px; margin-bottom: 7px; }
-.questionCard.flagship p { font-size: 14.5px; }
-.questionCard.flagship .qTag {
-  display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
-  color: var(--accent-ink); background: rgba(63, 125, 112, .15);
-  padding: 3px 10px; border-radius: 999px; margin-bottom: 11px;
-}
-.questionCard.flagship .qGo { margin-top: 12px; }
-
-/* Still-cooking items: visible, dashed, clearly not ready. */
-.questionCard.soon { background: transparent; border-style: dashed; box-shadow: none; cursor: default; }
-.questionCard.soon:hover { transform: none; box-shadow: none; border-color: var(--edge); }
-.questionCard.soon .qEmoji { background: rgba(60, 52, 40, .06); filter: grayscale(.35); opacity: .8; }
-.questionCard.soon h3 { color: #8a8172; }
-.questionCard.soon p { color: #9a9182; }
-.questionCard.soon .qGo { color: #a8a091; }
-
 .landingFoot {
   text-align: center; margin: 56px auto 0; max-width: 560px;
   font-size: 14px; color: #7a7263; line-height: 1.65;
 }
 .landingFoot a { color: var(--accent-ink); font-weight: 600; }
+.landingFoot .soonNote { display: block; margin-top: 9px; font-size: 13px; color: #9a9182; }
 .landingFoot .sig { display: block; margin-top: 11px; font-style: italic; color: #8f8370; }
 
 @media (max-width: 560px) {
   .landingHero h2 { font-size: 30px; }
-  .questionCard.flagship { flex-direction: column; align-items: flex-start; text-align: left; }
 }
 
 /* ---------------------------------------------------------------- question banner --- */

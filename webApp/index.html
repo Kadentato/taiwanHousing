@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer — poke around the housing market</title>
-  <link rel="stylesheet" href="styles/appStyles.css?v=25" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=27" />
 </head>
 <body class="landingBody">
   <header class="appHeader">
@@ -24,35 +24,26 @@
     <div class="landingHero">
       <span class="heyPill">👋 Hey — welcome in</span>
       <h2>So — what do you actually want to know about <span class="accent">Taiwan's housing</span>?</h2>
-      <p>By law, every home sale in Taiwan gets reported — millions of them, buried in a government
-        data dump that isn't really built to be read. I cleaned the whole thing up and put it on a
-        map you can click around. So pick a question, any question;
-        <span class="wink">I've already started a few of the good ones for you.</span></p>
+      <p>Every home sale in Taiwan gets reported by law — millions of them, buried in a government
+        data dump that isn't really built to be read. I cleaned it up and put it on a map you can
+        click around. <span class="wink">Pick a question — I've started the good ones for you.</span></p>
     </div>
 
-    <div class="landingSectionLabel">The one I'm most excited about</div>
     <div class="questionGrid">
-      <a class="questionCard flagship" href="explorer.html?q=mrt">
+      <a class="questionCard" href="explorer.html?q=mrt">
+        <span class="qTag">Start here</span>
         <div class="qEmoji">🚇</div>
-        <div class="qBody">
-          <span class="qTag">Start here</span>
-          <h3>Does living near the MRT actually cost more?</h3>
-          <p>It's a common assumption — so let's actually test it. Every Taipei and New Taipei home,
-            coloured by how close it sits to the metro, with the lines laid right on top. The homes
-            nearest a stop do tend to sell for more per ping; <em>how much of that is really the
-            metro</em> is the interesting part.</p>
-          <div class="qGo">See for yourself →</div>
-        </div>
+        <h3>Does living near the MRT cost more?</h3>
+        <p>Every Taipei home, coloured by how close it sits to the metro, with the lines laid on top.
+          The nearest ones do sell for more per ping — <em>how much is really the metro</em> is the fun part.</p>
+        <div class="qGo">See for yourself →</div>
       </a>
-    </div>
 
-    <div class="landingSectionLabel">The usual suspects</div>
-    <div class="questionGrid">
       <a class="questionCard" href="explorer.html?q=price">
         <div class="qEmoji">💰</div>
         <h3>Where's the pricey stuff?</h3>
         <p>Start with the whole island and just keep clicking — region, city, district, right down
-          to a single sold home. It's the fastest way to see where the money actually lives.</p>
+          to a single sold home. The fastest way to see where the money actually lives.</p>
         <div class="qGo">Follow the money →</div>
       </a>
 
@@ -87,41 +78,20 @@
           prices to see whether a big skyline really means a big price tag.</p>
         <div class="qGo">Measure up →</div>
       </a>
-    </div>
 
-    <div class="landingSectionLabel">Go a little deeper</div>
-    <div class="questionGrid">
       <a class="questionCard" href="predictor.html">
         <div class="qEmoji">🔮</div>
         <h3>What's a specific place worth?</h3>
-        <p>Describe a home — where it is, how big, how old — and get a ballpark price that's
-          honest about how sure it actually is.</p>
+        <p>Describe a home — where it is, how big, how old — and get a ballpark price that's honest
+          about how sure it actually is.</p>
         <div class="qGo">Get an estimate →</div>
       </a>
-
-      <a class="questionCard" href="database.html">
-        <div class="qEmoji">🔎</div>
-        <h3>Just give me the numbers</h3>
-        <p>The whole dataset, loaded right in your browser. Every table and column, plus a box to
-          run your own queries.</p>
-        <div class="qGo">Dig in →</div>
-      </a>
-    </div>
-
-    <div class="landingSectionLabel">Still cooking</div>
-    <div class="questionGrid">
-      <div class="questionCard soon">
-        <div class="qEmoji">🌏</div>
-        <h3>Does immigration move prices?</h3>
-        <p>Curious whether the two track together across districts. Still hunting down the right
-          dataset for it.</p>
-        <div class="qGo">On the wishlist</div>
-      </div>
     </div>
 
     <p class="landingFoot">
       Every number here is a real, reported home sale — straight from Taiwan's public property
       registry. Nothing you click ever gets sent anywhere.
+      <span class="soonNote">Still cooking: does immigration move prices? I'm hunting for the right dataset.</span>
       <span class="sig">I built this because I couldn't find a good version of it myself.
         <a href="about.html">Here's how it works →</a></span>
     </p>
