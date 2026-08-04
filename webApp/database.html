@@ -13,12 +13,17 @@
         <span class="brandIcon" aria-hidden="true">🏠</span>
         <h1>Taiwan Housing Explorer</h1>
       </a>
-      <p class="subtitle">Raw database browser — the actual SQLite tables, in your browser</p>
+      <p class="subtitle">The real SQLite schema, running in your browser — write your own SQL against it</p>
     </div>
     <a class="headerLink" href="explorer.html">← Back to the map</a>
   </header>
 
   <div class="dbToolbar" id="dbToolbar">
+    <p style="margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--muted)">Everything runs on a
+      local copy of the database, right here in your browser. The <b>houses</b> table is a
+      <b>20,000-sale sample</b> for quick poking; the full ~3.4 million sales and CSV downloads live on
+      <a href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener" style="color:var(--accent-ink);font-weight:600">GitHub</a>
+      and the <a href="about.html" style="color:var(--accent-ink);font-weight:600">About page</a>.</p>
     <div class="tableChips" id="tableChips"></div>
     <div class="dbSqlBar">
       <input id="sqlBox" class="sqlBox" spellcheck="false"
