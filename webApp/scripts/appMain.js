@@ -840,7 +840,8 @@ function scopeLabel() {
 }
 
 function renderStats() {
-  const row = (l, v) => `<div class="statRow"><span>${l}</span><b>${v}</b></div>`;
+  // Plain-language labels for a general student; the `tip` keeps the real stats term one hover away.
+  const row = (l, v, tip) => `<div class="statRow"><span${tip ? ` title="${tip}"` : ""}>${l}</span><b>${v}</b></div>`;
   const note = (t) => `<p style="font-size:11px;color:#64748b;line-height:1.45;margin:8px 0 0">${t}</p>`;
   const fmt = (v, m) => (v != null ? m.fmt(v) : "—");
   // Drilled into a district → its full records are loaded → rich stats (median, IQR, bootstrap CI).
@@ -848,14 +849,16 @@ function renderStats() {
     const rs = filteredRecords();
     const uVals = METRIC.unit.values(rs);
     const q1 = quantile(uVals, 0.25), q3 = quantile(uVals, 0.75), ci = bootstrapMedianCI(uVals);
-    let html = row("Scope", scopeLabel()) + row("Type", state.type)
+    let html = row("Area", scopeLabel()) + row("Deal type", state.type)
       + (state.yearFrom || state.yearTo ? row("Years", (state.yearFrom || "…") + "–" + (state.yearTo || "latest")) : "")
-      + row("Transactions (n)", rs.length.toLocaleString())
-      + row("Median unit price", fmt(median(uVals), METRIC.unit));
-    if (q1 != null && q3 != null) html += row("IQR (Q1–Q3)", METRIC.unit.fmt(q1) + " – " + METRIC.unit.fmt(q3));
-    if (ci) html += row("Median 95% CI", METRIC.unit.fmt(ci[0]) + " – " + METRIC.unit.fmt(ci[1]));
-    html += row("Median total price", fmt(METRIC.total.pick(rs), METRIC.total))
-      + row("Median living size", fmt(METRIC.ping.pick(rs), METRIC.ping));
+      + row("Sales", rs.length.toLocaleString(), "How many sales this figure is based on")
+      + row("Typical price / ping", fmt(median(uVals), METRIC.unit), "The median — half of sales cost more, half cost less");
+    if (q1 != null && q3 != null) html += row("Middle 50% of prices", METRIC.unit.fmt(q1) + " – " + METRIC.unit.fmt(q3),
+      "Half of all sales fall inside this band (the interquartile range, Q1–Q3)");
+    if (ci) html += row("How pinned-down", METRIC.unit.fmt(ci[0]) + " – " + METRIC.unit.fmt(ci[1]),
+      "We're 95% confident the true typical price sits in here (95% confidence interval)");
+    html += row("Typical total price", fmt(METRIC.total.pick(rs), METRIC.total), "The median full sale price")
+      + row("Typical home size", fmt(METRIC.ping.pick(rs), METRIC.ping), "The median living size, in ping");
     // Say plainly whether the dots are at real addresses or stacked on the district centre —
     // only 5 metros have doorplate geocoding, and stacked dots otherwise look like a bug.
     const placed = store.records.reduce((n, r) => n + (r.lat != null ? 1 : 0), 0);
@@ -872,17 +875,17 @@ function renderStats() {
   }
   // Otherwise read the scope's precomputed FULL-DATA aggregate (accurate, all-time).
   const feat = state.scopeCity ? store.geom.city.get(state.scopeCity) : null;
-  let html = row("Scope", scopeLabel()) + row("Type", state.type);
+  let html = row("Area", scopeLabel()) + row("Deal type", state.type);
   if (feat) {
-    html += row("Transactions (n)", aggCount(feat).toLocaleString())
-      + row("Median unit price", fmt(aggMetric(feat, "unit"), METRIC.unit))
-      + row("Median total price", fmt(aggMetric(feat, "total"), METRIC.total))
-      + row("Median living size", fmt(aggMetric(feat, "ping"), METRIC.ping));
+    html += row("Sales", aggCount(feat).toLocaleString(), "How many sales this figure is based on")
+      + row("Typical price / ping", fmt(aggMetric(feat, "unit"), METRIC.unit), "The median — half of sales cost more, half cost less")
+      + row("Typical total price", fmt(aggMetric(feat, "total"), METRIC.total), "The median full sale price")
+      + row("Typical home size", fmt(aggMetric(feat, "ping"), METRIC.ping), "The median living size, in ping");
   } else {
-    html += row("Housing sales (n)", ((store.summary.housingTotals || store.summary.totals)[state.type] || 0).toLocaleString())
-      + note("Nationwide total. Pick a city or district to get a median, since lumping the whole country together mixes very different markets.");
+    html += row("Housing sales", ((store.summary.housingTotals || store.summary.totals)[state.type] || 0).toLocaleString())
+      + note("Nationwide total. Pick a city or district to get a typical price — lumping the whole country together mixes very different markets.");
   }
-  html += note("Click a district on the map to see its individual sales, plus the IQR and a 95% CI.");
+  html += note("Click a district on the map to see its individual sales, how much prices spread, and how pinned-down the typical figure is.");
   document.getElementById("statsBody").innerHTML = html;
 }
 
@@ -1187,9 +1190,9 @@ function addReadControl() {
 
 // The interpret popup has two pages: 0 = how to read the map, 1 = what the data says.
 let interpretPage = 0;
-function openInterpret() {
+function openInterpret(page = 0) {
   if (!activeQuestionRead) return;
-  interpretPage = 0;
+  interpretPage = page;   // 💡 opens the guide (0); the map's "how we know" jumps to the findings (1)
   renderInterpretPage();
   document.getElementById("interpretModal").hidden = false;
 }
@@ -1310,6 +1313,8 @@ function wireStatControls() {
   document.getElementById("interpretModal").addEventListener("click", (e) => { if (e.target.id === "interpretModal") e.currentTarget.hidden = true; });
   document.getElementById("interpretNext").onclick = () => { interpretPage = 1; renderInterpretPage(); };
   document.getElementById("interpretPrev").onclick = () => { interpretPage = 0; renderInterpretPage(); };
+  const findingHow = document.getElementById("findingHow");
+  if (findingHow) findingHow.onclick = () => openInterpret(1);   // straight to the numbers
 }
 
 // The map and stats always cover the FULL history (2012→latest); the year window is no longer a
@@ -1430,6 +1435,7 @@ function renderHeader() {
 const QUESTION_PRESETS = {
   price:    { metric: "unit",  title: "Where's the pricey stuff?",
               hint: "Start with the whole island, then click a city and a district to reach individual sold homes.",
+              finding: `The money pools in the Taipei–New Taipei core — <b>Da'an</b> runs about <b>16×</b> the price per ping of the cheapest rural townships.`,
               read: {
                 guide: `<h2>Reading the price map</h2>
                 <p>Where does the money actually go? That is the whole question — and the map answers it in a single gesture: every area is shaded by its <b>median price per ping</b>, so the deeper a place runs, the more you are handing over for the same square of floor.</p>
@@ -1448,6 +1454,7 @@ const QUESTION_PRESETS = {
                 <p>Which is the honest, slightly boring answer to "where's the pricey stuff" — the capital, again. The part worth wandering is not <em>whether</em> Taipei is dear, but <em>where inside it</em> the money pools, and that is a map you have to walk yourself.</p>` } },
   activity: { metric: "count", title: "Where's the market buzzing?",
               hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones.",
+              finding: `<b>New Taipei City</b> alone is nearly <b>one in five</b> of every home sold in the country — volume follows people, not prices.`,
               read: {
                 guide: `<h2>Reading the activity map</h2>
                 <p>Some neighbourhoods trade homes like a busy market stall; others sit still for months at a time. This map asks only one thing — <b>how many homes actually sold</b> in each place — and lets colour and bubble size climb together, so the busy corners are impossible to miss.</p>
@@ -1466,6 +1473,7 @@ const QUESTION_PRESETS = {
                 <p>So volume turns out to be a story about supply, not price — the busiest places are the big suburban cities, the ones with the most people and the most cranes in the air. A market can be frantic and cheap at once, and this map keeps quietly reminding you of it.</p>` } },
   size:     { metric: "ping",  title: "Where do you get room to breathe?",
               hint: "Coloured by the median living size in each area, measured in ping.",
+              finding: `The typical home swings from about <b>9 ping</b> in dense city cores to nearly <b>60</b> in the roomiest districts — and roomier usually means cheaper per ping.`,
               read: {
                 guide: `<h2>Reading the size map</h2>
                 <p>Price tells you what a home costs; this tells you what you actually get. Every area is shaded by its <b>median living size in ping</b> — the deeper it runs, the more room there is to breathe.</p>
@@ -1483,6 +1491,7 @@ const QUESTION_PRESETS = {
                 <p>So size and price pull in opposite directions across the map — the places with the most floor are usually the cheapest way to get it. Space and value travel together, away from the centre, and the thing you quietly trade for both is the commute.</p>` } },
   clusters: { lisa: true,      title: "Where are the hot and cold pockets?",
               hint: "The map flags districts that are way pricier (red) or way cheaper (blue) than their neighbours.",
+              finding: `Most districts are exactly what their neighbours would predict — only about <b>13</b> genuinely break from the pack, and those are the finds.`,
               read: {
                 guide: `<h2>Reading the hot-and-cold map</h2>
                 <p>This one is not about price on its own — it is about a district against the company it keeps. The sharper question underneath: is this place unusually dear, or unusually cheap, <em>for where it sits</em>?</p>
@@ -1502,6 +1511,7 @@ const QUESTION_PRESETS = {
   mrt:      { question: "mrt", city: "a", mrt: true,
               title: "Does living near the MRT actually cost more?",
               hint: "Taipei's shown by price for now — click any district to recolour its homes by how far they sit from the nearest station.",
+              finding: `Homes within about <b>300 m</b> of a station sell roughly <b>40% more</b> per ping — a real gap, though correlation, not proof.`,
               read: {
                 guide: `<h2>Reading the MRT map</h2>
                 <p>Does living near the metro actually cost more? Everyone seems sure that it does — so here is where you get to check, one district at a time. It all comes down to a single relationship: a home's price against how far it sits from the nearest station.</p>
@@ -1521,6 +1531,7 @@ const QUESTION_PRESETS = {
   towers:   { metric: "unit", towers: true,
               title: "Taller tower, pricier city?",
               hint: "Each region's tallest building drawn to scale as a skyscraper, sitting over the price-per-ping colour.",
+              finding: `Taller-tower cities really do trend pricier (<b>r ≈ 0.84</b>) — but Taipei carries most of it; the steadier read is <b>ρ ≈ 0.67</b>.`,
               read: {
                 guide: `<h2>Reading the skyline map</h2>
                 <p>Does a city's tallest tower tell you anything about what its homes cost? Every city and county carries one skyscraper icon, drawn to scale — the taller its tallest building, the bigger the icon — sitting on top of the usual <b>price-per-ping</b> colour.</p>
@@ -1549,6 +1560,16 @@ function setQuestionBanner(preset) {
   activeQuestionRead = preset.read || null;
   updateReadControl();
   banner.hidden = false;
+  // Surface the answer right on the map — the one-line finding, with "how we know" into the popup.
+  const findingBar = document.getElementById("findingBar");
+  if (findingBar) {
+    if (preset.finding) {
+      document.getElementById("findingText").innerHTML = preset.finding;
+      findingBar.hidden = false;
+    } else {
+      findingBar.hidden = true;
+    }
+  }
 }
 
 function applyUrlPreset() {

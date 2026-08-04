@@ -487,6 +487,26 @@ body.landingBody {
 .questionBannerText span { color: var(--accent-ink); }
 /* A small pastel-pink circle in the map's top-right corner.
    Click it for the two-page popup: how to read the map, then what the data says. */
+/* The one-line "short answer" surfaced on the map, under the toolbar. The punchline lives here;
+   "how we know" jumps into the findings popup. */
+.findingBar {
+  display: flex; align-items: baseline; gap: 10px 12px; flex-wrap: wrap;
+  padding: 9px 16px; background: var(--accent-soft); border-bottom: 1px solid #c3d9d2;
+  color: #2c4d45; font-size: 13.5px; line-height: 1.45;
+}
+.findingKey {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--accent-ink); transform: translateY(-1px);
+}
+.findingText { flex: 1 1 240px; min-width: 0; }
+.findingText b { color: #1c3a33; font-weight: 700; }
+.findingHow {
+  flex-shrink: 0; border: 0; background: transparent; color: var(--accent-ink);
+  font: inherit; font-weight: 600; cursor: pointer; padding: 0; white-space: nowrap;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.findingHow:hover { color: var(--accent); }
+
 /* Skyscraper icons for the "do taller cities cost more?" map — drawn to scale by height. */
 .leaflet-div-icon.towerIcon { background: transparent; border: 0; }
 .towerIcon svg { display: block; filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, .4)); }

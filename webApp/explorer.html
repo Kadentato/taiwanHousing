@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=25" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=26" />
 </head>
 <body>
   <header class="appHeader">
@@ -71,6 +71,12 @@
         <div class="viewBarRight" id="viewBarRight"></div>
       </div>
 
+      <div class="findingBar" id="findingBar" hidden>
+        <span class="findingKey">The short answer</span>
+        <span class="findingText" id="findingText"></span>
+        <button class="findingHow" id="findingHow" type="button">How we know →</button>
+      </div>
+
       <div id="mapView" class="mapView">
         <div id="map"></div>
         <div class="chartPanel" id="chartPanel">
@@ -117,6 +123,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=65"></script>
+  <script src="scripts/appMain.js?v=66"></script>
 </body>
 </html>
