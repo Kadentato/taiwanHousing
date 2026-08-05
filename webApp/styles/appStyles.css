@@ -508,3 +508,55 @@ body.landingBody {
   transition: background .14s ease, border-color .14s ease, transform .14s ease;
 }
 .readControl a:hover { background: #f9c2d6; border-color: #ec8bad; transform: scale(1.08); }
+
+/* =====================================================================
+   Small screens. Desktop above is the priority and stays untouched — these
+   only apply below the breakpoint. The explorer stacks and leads with the map;
+   controls drop below it, and the page scrolls instead of locking to 100vh.
+   ===================================================================== */
+@media (max-width: 680px) {
+  body { height: auto; min-height: 100vh; }
+
+  /* Header: brand on top, nav as one horizontally-scrollable row; drop the stat block and the
+     secondary subtitle (the landing tagline is kept). Keeps the header short so the map gets room. */
+  .appHeader { flex-wrap: wrap; gap: 6px 12px; padding: 10px 14px; }
+  .appHeader h1 { font-size: 17px; }
+  body:not(.landingBody) .subtitle { display: none; }
+  .headerStats { display: none; }
+  .headerRight {
+    width: 100%; gap: 7px; flex-wrap: nowrap; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .headerRight::-webkit-scrollbar { display: none; }
+  .headerLink { font-size: 12px; padding: 5px 9px; flex-shrink: 0; }
+
+  /* Finding bar: drop the "short answer" label, keep the answer itself; tighter. */
+  .findingKey { display: none; }
+  .findingBar { padding: 8px 14px; font-size: 13px; }
+
+  /* Explorer: stack vertically, map first, controls beneath it. */
+  .appBody { flex-direction: column; }
+  .mainArea { order: 1; }
+  .sidebar {
+    order: 2; width: 100%; border-right: 0; border-top: 1px solid var(--line); overflow: visible;
+  }
+  .mapView { display: block; }
+  #map { height: 62vh; min-height: 340px; }
+  .tableView { height: 74vh; min-height: 360px; }
+  .viewToggle { width: auto; }              /* Map / Records shrink to content, question gets the room */
+  .chartPanel { height: 200px; }
+  .legend { font-size: 10.5px; }
+  .legend .legendNote { max-width: 150px; }
+
+  /* Popups and their footer fit a narrow screen. */
+  .modalCard { padding: 20px 18px; }
+  .modalNav { flex-wrap: wrap; gap: 8px; }
+}
+
+@media (max-width: 430px) {
+  .appHeader h1 { font-size: 16px; }
+  .subtitle { font-size: 11.5px; }
+  #map { height: 56vh; }
+  .findingBar { padding: 8px 12px; }
+  .questionGrid { gap: 14px; }
+}
