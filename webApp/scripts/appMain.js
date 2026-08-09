@@ -34,6 +34,7 @@ const state = {
   colorMode: "metric",  // "metric" | "lisa"
   showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
   showTowers: false,    // "do taller cities cost more?" — skyscraper icons over the city choropleth
+  showImmigration: false, // "does immigration move prices?" — foreign-resident-share dots over the choropleth
   question: null,       // active landing-page question (e.g. "mrt"), drives preset behaviour
 };
 
@@ -66,6 +67,20 @@ const TOWERS = {
   x: { en: "Wenk Premier",                       m: 58 },
 };
 const TOWERS_MAX = 508;   // Taipei 101 — the icon-size reference
+
+// Foreign-resident share per city/county — "does immigration move prices?". rate = foreign
+// residents (ARC holders, ~May 2025, NIA via zh.Wikipedia) ÷ registered population (June 2026).
+// About three-quarters of these are migrant workers, so it's really labour migration. Keyed by cityCode.
+const IMMIGRATION = {
+  a: { rate: 3.5, foreign: 83744 },  b: { rate: 4.5, foreign: 128626 }, c: { rate: 2.4, foreign: 8455 },
+  d: { rate: 4.2, foreign: 77529 },  e: { rate: 3.6, foreign: 96413 },  f: { rate: 3.4, foreign: 137683 },
+  g: { rate: 3.4, foreign: 15443 },  h: { rate: 6.9, foreign: 162144 }, i: { rate: 1.9, foreign: 4966 },
+  j: { rate: 8.0, foreign: 47714 },  k: { rate: 5.5, foreign: 29215 },  m: { rate: 3.6, foreign: 16779 },
+  n: { rate: 5.4, foreign: 64832 },  o: { rate: 5.1, foreign: 23175 },  p: { rate: 4.2, foreign: 27167 },
+  q: { rate: 4.2, foreign: 19896 },  t: { rate: 2.7, foreign: 21361 },  u: { rate: 2.7, foreign: 8380 },
+  v: { rate: 1.7, foreign: 3493 },   w: { rate: 1.1, foreign: 1500 },   x: { rate: 2.7, foreign: 2901 },
+};
+const IMM_MAX_RATE = 8.0;   // Hsinchu County — the dot-size reference
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
 const viewStack = [];   // drill history for Esc (each entry restores level+scope+map view)
@@ -103,7 +118,7 @@ const store = {
 };
 
 let map, dataLayer, choroBacking, legend, chart;
-let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null;
+let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null, immigrationLayer = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
@@ -434,8 +449,9 @@ function renderMap() {
 
   if (lisaMode) updateLisaLegend();
   else {
-    const note = (state.showTowers && state.level === "city")
-      ? "🏙️ icon height ∝ each region's tallest building" : null;
+    let note = null;
+    if (state.showTowers && state.level === "city") note = "🏙️ icon height ∝ each region's tallest building";
+    else if (state.showImmigration && state.level === "city") note = "🧑 dot size ∝ foreign-resident share";
     updateLegend(bins, metric, note, state.level === "district");
   }
 }
@@ -1039,6 +1055,7 @@ function renderAll() {
   updateLabelsVisibility();
   updateMrtVisibility();
   updateTowerVisibility();
+  updateImmigrationVisibility();
   renderChart();
 }
 
@@ -1184,6 +1201,44 @@ function updateTowerVisibility() {
     if (!map.hasLayer(towerLayer)) towerLayer.addTo(map);
   } else if (towerLayer && map.hasLayer(towerLayer)) {
     towerLayer.remove();
+  }
+}
+
+// -------------------------------------------------- immigration overlay ---
+// "Does immigration move prices?" — a dot per city/county sized by its foreign-resident share
+// (IMMIGRATION), over the price-per-ping choropleth. Big dots scattered across cheap and dear
+// cities alike is the point: the two don't line up.
+function immigrationIcon(rate) {
+  const d = Math.round(16 + (rate / IMM_MAX_RATE) * 30);   // px diameter ∝ share (~16 → 46)
+  const svg =
+    `<svg viewBox="0 0 40 40" width="${d}" height="${d}" xmlns="http://www.w3.org/2000/svg">`
+    + `<circle cx="20" cy="20" r="18" fill="#d97757" stroke="#8f4a35" stroke-width="2"/>`
+    + `<circle cx="20" cy="15.5" r="5" fill="#fff"/>`                 // head
+    + `<path d="M10.5 30 C10.5 22 29.5 22 29.5 30 Z" fill="#fff"/>`   // shoulders
+    + `</svg>`;
+  return L.divIcon({ className: "immIcon", html: svg, iconSize: [d, d], iconAnchor: [d / 2, d / 2] });
+}
+function buildImmigrationLayer() {
+  if (!map.getPane("towers")) { map.createPane("towers"); map.getPane("towers").style.zIndex = 640; }
+  const markers = [];
+  for (const f of store.geom.city.values()) {
+    const im = IMMIGRATION[f.properties.cityCode];
+    if (!im) continue;
+    const mk = L.marker(cityCentroid(f), { pane: "towers", icon: immigrationIcon(im.rate), keyboard: false,
+      riseOnHover: true, zIndexOffset: Math.round((IMM_MAX_RATE - im.rate) * 100) });  // smaller dots on top
+    mk.bindTooltip(`${f.properties.cityEn} — ${im.rate}% foreign residents (${im.foreign.toLocaleString()})`,
+      { direction: "top", className: "mapLabel", offset: [0, -6] });
+    markers.push(mk);
+  }
+  return L.layerGroup(markers);
+}
+function updateImmigrationVisibility() {
+  const show = state.showImmigration && state.level === "city" && state.view === "map";
+  if (show) {
+    if (!immigrationLayer) immigrationLayer = buildImmigrationLayer();
+    if (!map.hasLayer(immigrationLayer)) immigrationLayer.addTo(map);
+  } else if (immigrationLayer && map.hasLayer(immigrationLayer)) {
+    immigrationLayer.remove();
   }
 }
 
@@ -1570,6 +1625,27 @@ const QUESTION_PRESETS = {
                   <li>The exceptions are the interesting part. <b>Kaohsiung</b> owns the second-tallest building in the country (347 m) on merely mid-tier prices, while stub-towered <b>Kinmen</b> (59 m) runs expensive on island scarcity alone.</li>
                 </ul>
                 <p>Read it as a symptom, not a cause — a tall skyline is what a big, dense, moneyed city grows, not the reason its homes cost what they do. The tower and the price tag are both children of the same demand, which makes height a decent hunch and a poor valuation.</p>` } },
+  immigration: { metric: "unit", immigration: true,
+              title: "Does immigration move prices?",
+              hint: "Each region's foreign-resident share drawn as a sized dot, over the price-per-ping colour.",
+              finding: `Barely — the most-immigrant places are factory counties, not the dearest ones, so the two hardly track (correlation ≈ <b>0</b>).`,
+              read: {
+                guide: `<h2>Reading the immigration map</h2>
+                <p>Does a wave of new arrivals push up what homes cost? It's a common worry, so here's where you get to actually look. Every region carries a dot sized by its <b>share of foreign residents</b>, sitting over the same <b>price-per-ping</b> colour as the other maps.</p>
+                <p class="lookFor"><b>What to watch:</b> look for the big dots landing on the dark (expensive) cities. If immigration drove prices, the two would line up — the real question is whether they do.</p>
+                <ul>
+                  <li>Dot size is each region's foreign-resident share of its population; the colour underneath is the median price per ping.</li>
+                  <li>These are ARC-holding residents — and about three in four are <b>migrant workers</b>, contract labour in factories and care work, who very rarely buy a home.</li>
+                  <li>Hover any dot for that region's exact share and head-count.</li>
+                </ul>`,
+                findings: `<h2>What the numbers turned out to be</h2>
+                <p>So — does immigration move prices? Barely, if at all.</p>
+                <ul>
+                  <li>Line each region's foreign-resident share up against its price per ping and there's essentially no relationship: <b>r ≈ 0</b>, and even the gentler rank measure only reaches <b>ρ ≈ 0.25</b> — below what counts as meaningful across 21 regions.</li>
+                  <li>The most-immigrant places give it away: <b>Hsinchu County</b> (8%) and <b>Taoyuan</b> (6.9%) are science-park and factory counties on middling prices, while the dearest market of all, <b>Taipei</b>, sits <em>below</em> average on immigration.</li>
+                  <li>It makes sense once you remember roughly <b>three-quarters</b> of these residents are migrant workers — they follow the jobs, into industrial towns, and they aren't the ones bidding on flats.</li>
+                </ul>
+                <p>So immigration and house prices are mostly answering different questions here: one traces where the work is, the other where the wealth is — and in Taiwan those aren't the same places.</p>` } },
 };
 let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 
@@ -1616,6 +1692,7 @@ function applyUrlPreset() {
     ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
   }
   if (preset.towers) state.showTowers = true;
+  if (preset.immigration) state.showImmigration = true;
   setQuestionBanner(preset);
 }
 

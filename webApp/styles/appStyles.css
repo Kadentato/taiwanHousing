@@ -490,6 +490,14 @@ body.landingBody {
           drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
 }
 
+/* Foreign-resident-share dots for the "does immigration move prices?" map. */
+.leaflet-div-icon.immIcon { background: transparent; border: 0; }
+.immIcon svg {
+  display: block;
+  filter: drop-shadow(.7px 0 0 #fff) drop-shadow(-.7px 0 0 #fff) drop-shadow(0 .7px 0 #fff)
+          drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
+}
+
 /* Self-updating build marker, bottom-left. Confirms which assets the browser loaded. */
 .buildTag {
   position: fixed; left: 8px; bottom: 6px; z-index: 1200;
