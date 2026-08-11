@@ -34,7 +34,8 @@ const state = {
   colorMode: "metric",  // "metric" | "lisa"
   showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
   showTowers: false,    // "do taller cities cost more?" — skyscraper icons over the city choropleth
-  showImmigration: false, // "does immigration move prices?" — foreign-resident-share dots over the choropleth
+  showImmigration: false, // "does immigration move prices?" — a scatter (count vs price) with a per-capita toggle
+  immMode: "total",       // "total" foreign residents vs "percapita" share — the toggle that reveals the size confound
   question: null,       // active landing-page question (e.g. "mrt"), drives preset behaviour
 };
 
@@ -72,15 +73,14 @@ const TOWERS_MAX = 508;   // Taipei 101 — the icon-size reference
 // residents (ARC holders, ~May 2025, NIA via zh.Wikipedia) ÷ registered population (June 2026).
 // About three-quarters of these are migrant workers, so it's really labour migration. Keyed by cityCode.
 const IMMIGRATION = {
-  a: { rate: 3.5, foreign: 83744 },  b: { rate: 4.5, foreign: 128626 }, c: { rate: 2.4, foreign: 8455 },
-  d: { rate: 4.2, foreign: 77529 },  e: { rate: 3.6, foreign: 96413 },  f: { rate: 3.4, foreign: 137683 },
-  g: { rate: 3.4, foreign: 15443 },  h: { rate: 6.9, foreign: 162144 }, i: { rate: 1.9, foreign: 4966 },
-  j: { rate: 8.0, foreign: 47714 },  k: { rate: 5.5, foreign: 29215 },  m: { rate: 3.6, foreign: 16779 },
-  n: { rate: 5.4, foreign: 64832 },  o: { rate: 5.1, foreign: 23175 },  p: { rate: 4.2, foreign: 27167 },
-  q: { rate: 4.2, foreign: 19896 },  t: { rate: 2.7, foreign: 21361 },  u: { rate: 2.7, foreign: 8380 },
-  v: { rate: 1.7, foreign: 3493 },   w: { rate: 1.1, foreign: 1500 },   x: { rate: 2.7, foreign: 2901 },
+  a: { foreign: 83744,  pop: 2425964 }, b: { foreign: 128626, pop: 2867468 }, c: { foreign: 8455,  pop: 358574 },
+  d: { foreign: 77529,  pop: 1848108 }, e: { foreign: 96413,  pop: 2709973 }, f: { foreign: 137683, pop: 4038031 },
+  g: { foreign: 15443,  pop: 448513 },  h: { foreign: 162144, pop: 2356618 }, i: { foreign: 4966,  pop: 261497 },
+  j: { foreign: 47714,  pop: 598260 },  k: { foreign: 29215,  pop: 529791 },  m: { foreign: 16779, pop: 467082 },
+  n: { foreign: 64832,  pop: 1203726 }, o: { foreign: 23175,  pop: 455755 },  p: { foreign: 27167, pop: 647648 },
+  q: { foreign: 19896,  pop: 470404 },  t: { foreign: 21361,  pop: 779096 },  u: { foreign: 8380,  pop: 311290 },
+  v: { foreign: 3493,   pop: 207858 },  w: { foreign: 1500,   pop: 137716 },  x: { foreign: 2901,  pop: 106550 },
 };
-const IMM_MAX_RATE = 8.0;   // Hsinchu County — the dot-size reference
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
 const viewStack = [];   // drill history for Esc (each entry restores level+scope+map view)
@@ -118,7 +118,7 @@ const store = {
 };
 
 let map, dataLayer, choroBacking, legend, chart;
-let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null, immigrationLayer = null;
+let mrtLayer = null, mrtControl = null, readControl = null, towerLayer = null, labelsLayer = null, immChart = null;
 // The MRT overlay is only meaningful for the two cities the Taipei metro serves.
 const MRT_CITIES = new Set(["a", "f"]);   // Taipei, New Taipei (fileCodes)
 
@@ -449,9 +449,8 @@ function renderMap() {
 
   if (lisaMode) updateLisaLegend();
   else {
-    let note = null;
-    if (state.showTowers && state.level === "city") note = "🏙️ icon height ∝ each region's tallest building";
-    else if (state.showImmigration && state.level === "city") note = "🧑 dot size ∝ foreign-resident share";
+    const note = (state.showTowers && state.level === "city")
+      ? "🏙️ icon height ∝ each region's tallest building" : null;
     updateLegend(bins, metric, note, state.level === "district");
   }
 }
@@ -1040,22 +1039,25 @@ function setView(view) {
   state.view = view;
   document.querySelectorAll("#viewToggle button").forEach((b) =>
     b.classList.toggle("active", b.dataset.view === view));
-  document.getElementById("mapView").hidden = view !== "map";
-  document.getElementById("tableView").hidden = view !== "table";
   if (view === "map") document.getElementById("viewBarRight").innerHTML = "";
-  renderAll();
-  if (view === "map" && map) setTimeout(() => map.invalidateSize(), 50);
+  renderAll();   // renderAll owns which panel (map / immigration scatter / table) is shown
+  if (view === "map" && map && !document.getElementById("mapView").hidden) setTimeout(() => map.invalidateSize(), 50);
 }
 
 function renderAll() {
   state.page = 0;   // filter/view changes reset paging; sort & pager call renderTable directly
   renderStats();
+  // The immigration question swaps the map for a scatter (count/rate vs price) at the all-cities level.
+  const immScatter = state.showImmigration && state.level === "city" && state.view === "map";
+  document.getElementById("immView").hidden = !immScatter;
+  document.getElementById("mapView").hidden = state.view !== "map" || immScatter;
+  document.getElementById("tableView").hidden = state.view !== "table";
   if (state.view === "table") { renderTable(); return; }
+  if (immScatter) { renderImmScatter(); return; }
   renderMap();
   updateLabelsVisibility();
   updateMrtVisibility();
   updateTowerVisibility();
-  updateImmigrationVisibility();
   renderChart();
 }
 
@@ -1204,42 +1206,90 @@ function updateTowerVisibility() {
   }
 }
 
-// -------------------------------------------------- immigration overlay ---
-// "Does immigration move prices?" — a dot per city/county sized by its foreign-resident share
-// (IMMIGRATION), over the price-per-ping choropleth. Big dots scattered across cheap and dear
-// cities alike is the point: the two don't line up.
-function immigrationIcon(rate) {
-  const d = Math.round(16 + (rate / IMM_MAX_RATE) * 30);   // px diameter ∝ share (~16 → 46)
-  const svg =
-    `<svg viewBox="0 0 40 40" width="${d}" height="${d}" xmlns="http://www.w3.org/2000/svg">`
-    + `<circle cx="20" cy="20" r="18" fill="#d97757" stroke="#8f4a35" stroke-width="2"/>`
-    + `<circle cx="20" cy="15.5" r="5" fill="#fff"/>`                 // head
-    + `<path d="M10.5 30 C10.5 22 29.5 22 29.5 30 Z" fill="#fff"/>`   // shoulders
-    + `</svg>`;
-  return L.divIcon({ className: "immIcon", html: svg, iconSize: [d, d], iconAnchor: [d / 2, d / 2] });
+// ---------------------------------------------- immigration scatter ---
+// "Does immigration move prices?" — a scatter of each region's foreign residents against its price
+// per ping, with a Total ⇄ Per-person toggle. The toggle is the lesson: counting heads looks
+// correlated, but that's city size; dividing by population flattens it. r is computed live.
+const IMM_LABEL = new Set(["Taipei City", "Taoyuan City", "Hsinchu County", "New Taipei City", "Kaohsiung City"]);
+
+function linReg(xs, ys) {
+  const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
+  return { slope: sxy / sxx, intercept: my - (sxy / sxx) * mx, r: sxy / Math.sqrt(sxx * syy) };
 }
-function buildImmigrationLayer() {
-  if (!map.getPane("towers")) { map.createPane("towers"); map.getPane("towers").style.zIndex = 640; }
-  const markers = [];
+
+function updateImmCallout(total, r) {
+  const el = document.getElementById("immCallout");
+  if (!el) return;
+  const rTxt = (r >= 0 ? "+" : "") + r.toFixed(2);
+  if (total) {
+    el.className = "immCallout warn";
+    el.innerHTML = `<span class="immTag">Counting heads</span> The trend line tilts up — <b>r = ${rTxt}</b>, "more immigrants, higher prices." `
+      + `But is that immigration… or just city size? <b>Now hit “Per person” →</b>`;
+  } else {
+    el.className = "immCallout good";
+    el.innerHTML = `<span class="immTag">Per person</span> The line goes flat — <b>r = ${rTxt}</b>. The link was <b>city size</b> all along: `
+      + `big cities have more immigrants <em>and</em> pricier homes. Immigration itself barely moves prices.`;
+  }
+}
+
+function renderImmScatter() {
+  const total = state.immMode !== "percapita";
+  const pts = [];
   for (const f of store.geom.city.values()) {
     const im = IMMIGRATION[f.properties.cityCode];
-    if (!im) continue;
-    const mk = L.marker(cityCentroid(f), { pane: "towers", icon: immigrationIcon(im.rate), keyboard: false,
-      riseOnHover: true, zIndexOffset: Math.round((IMM_MAX_RATE - im.rate) * 100) });  // smaller dots on top
-    mk.bindTooltip(`${f.properties.cityEn} — ${im.rate}% foreign residents (${im.foreign.toLocaleString()})`,
-      { direction: "top", className: "mapLabel", offset: [0, -6] });
-    markers.push(mk);
+    const price = f.properties.saleMedUnitPrice;
+    if (!im || price == null) continue;
+    pts.push({ city: f.properties.cityEn, foreign: im.foreign, rate: im.foreign / im.pop * 100, price: price * M2_PER_PING });
   }
-  return L.layerGroup(markers);
-}
-function updateImmigrationVisibility() {
-  const show = state.showImmigration && state.level === "city" && state.view === "map";
-  if (show) {
-    if (!immigrationLayer) immigrationLayer = buildImmigrationLayer();
-    if (!map.hasLayer(immigrationLayer)) immigrationLayer.addTo(map);
-  } else if (immigrationLayer && map.hasLayer(immigrationLayer)) {
-    immigrationLayer.remove();
-  }
+  const data = pts.map((p) => ({ x: total ? p.foreign : p.rate, y: p.price, city: p.city, foreign: p.foreign, rate: p.rate }));
+  const xs = data.map((d) => d.x), ys = data.map((d) => d.y);
+  const { slope, intercept, r } = linReg(xs, ys);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const pad = (xmax - xmin) * 0.04;
+  const line = [{ x: xmin - pad, y: slope * (xmin - pad) + intercept }, { x: xmax + pad, y: slope * (xmax + pad) + intercept }];
+  updateImmCallout(total, r);
+
+  if (immChart) immChart.destroy();
+  immChart = new Chart(document.getElementById("immChart"), {
+    data: {
+      datasets: [
+        { type: "line", data: line, borderColor: "#d97757", borderWidth: 2.5, borderDash: [7, 5],
+          pointRadius: 0, fill: false, order: 2 },
+        { type: "scatter", data, order: 1,
+          backgroundColor: (c) => (c.raw && IMM_LABEL.has(c.raw.city) ? "#d97757" : "#3f7d70"),
+          pointRadius: 6, pointHoverRadius: 8, borderColor: "#fff", borderWidth: 1 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: total ? "Foreign residents (people)" : "Foreign residents (% of population)", font: { size: 12 } },
+             ticks: { callback: (v) => total ? (v / 1000).toLocaleString() + "k" : v + "%", font: { size: 11 } } },
+        y: { title: { display: true, text: "Median price (NT$/ping)", font: { size: 12 } },
+             ticks: { callback: (v) => "NT$" + Math.round(v / 1000) + "k", font: { size: 11 } } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c) => `${c.raw.city}: ${c.raw.foreign.toLocaleString()} residents `
+          + `(${c.raw.rate.toFixed(1)}%) · NT$${Math.round(c.raw.y).toLocaleString()}/ping` } },
+      },
+    },
+    plugins: [{
+      id: "immLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx, meta = chart.getDatasetMeta(1);
+        ctx.save(); ctx.font = "600 11px system-ui, sans-serif"; ctx.fillStyle = "#3a332a";
+        chart.data.datasets[1].data.forEach((d, i) => {
+          if (!IMM_LABEL.has(d.city)) return;
+          const pt = meta.data[i];
+          ctx.fillText(d.city.replace(" City", "").replace(" County", " Co."), pt.x + 9, pt.y + 4);
+        });
+        ctx.restore();
+      },
+    }],
+  });
 }
 
 // A pastel-pink 💡 button in the map's top-right corner. It opens the current question's
@@ -1368,6 +1418,12 @@ function wireControls() {
   document.getElementById("viewToggle").onclick = (e) => {
     if (!e.target.dataset.view) return;
     setView(e.target.dataset.view);
+  };
+  document.getElementById("immToggle").onclick = (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.immMode = b.dataset.imm;
+    document.querySelectorAll("#immToggle button").forEach((x) => x.classList.toggle("active", x === b));
+    renderImmScatter();
   };
   document.getElementById("chartCollapse").onclick = (e) => {
     const panel = document.getElementById("chartPanel");
@@ -1627,25 +1683,25 @@ const QUESTION_PRESETS = {
                 <p>Read it as a symptom, not a cause — a tall skyline is what a big, dense, moneyed city grows, not the reason its homes cost what they do. The tower and the price tag are both children of the same demand, which makes height a decent hunch and a poor valuation.</p>` } },
   immigration: { metric: "unit", immigration: true,
               title: "Does immigration move prices?",
-              hint: "Each region's foreign-resident share drawn as a sized dot, over the price-per-ping colour.",
-              finding: `Barely — the most-immigrant places are factory counties, not the dearest ones, so the two hardly track (correlation ≈ <b>0</b>).`,
+              hint: "A scatter of each region's immigrants against its home prices — with a toggle that gives away the twist.",
+              finding: `Count heads and it looks linked (<b>r ≈ 0.44</b>) — but that's just city size; flip to per-person and the trend goes <b>flat</b>.`,
               read: {
-                guide: `<h2>Reading the immigration map</h2>
-                <p>Does a wave of new arrivals push up what homes cost? It's a common worry, so here's where you get to actually look. Every region carries a dot sized by its <b>share of foreign residents</b>, sitting over the same <b>price-per-ping</b> colour as the other maps.</p>
-                <p class="lookFor"><b>What to watch:</b> look for the big dots landing on the dark (expensive) cities. If immigration drove prices, the two would line up — the real question is whether they do.</p>
+                guide: `<h2>Reading the immigration chart</h2>
+                <p>Does more immigration mean pricier homes? Instead of a map, this one is a plain scatter — each dot is a city or county, placed left-to-right by <b>how many foreign residents it has</b> and up-or-down by its <b>median price per ping</b>. The dashed line is the trend running through them.</p>
+                <p class="lookFor"><b>What to watch:</b> flip the toggle between <b>Total residents</b> and <b>Per person</b> and keep your eye on that trend line — the switch <em>is</em> the whole lesson.</p>
                 <ul>
-                  <li>Dot size is each region's foreign-resident share of its population; the colour underneath is the median price per ping.</li>
-                  <li>These are ARC-holding residents — and about three in four are <b>migrant workers</b>, contract labour in factories and care work, who very rarely buy a home.</li>
-                  <li>Hover any dot for that region's exact share and head-count.</li>
+                  <li><b>Total</b> just counts heads; <b>Per person</b> divides by population, which cancels out the plain fact that big cities have more of <em>everyone</em>.</li>
+                  <li>Hover any dot for the city, its immigrant count, its share, and its price.</li>
+                  <li>The counts are the government's own headcount of ARC holders — and about three in four are migrant workers, who rarely buy a home.</li>
                 </ul>`,
                 findings: `<h2>What the numbers turned out to be</h2>
-                <p>So — does immigration move prices? Barely, if at all.</p>
+                <p>So — does immigration move prices? It depends entirely on how you count, and that's the interesting part.</p>
                 <ul>
-                  <li>Line each region's foreign-resident share up against its price per ping and there's essentially no relationship: <b>r ≈ 0</b>, and even the gentler rank measure only reaches <b>ρ ≈ 0.25</b> — below what counts as meaningful across 21 regions.</li>
-                  <li>The most-immigrant places give it away: <b>Hsinchu County</b> (8%) and <b>Taoyuan</b> (6.9%) are science-park and factory counties on middling prices, while the dearest market of all, <b>Taipei</b>, sits <em>below</em> average on immigration.</li>
-                  <li>It makes sense once you remember roughly <b>three-quarters</b> of these residents are migrant workers — they follow the jobs, into industrial towns, and they aren't the ones bidding on flats.</li>
+                  <li><b>Count heads</b> and it looks real — more foreign residents, higher prices, <b>r ≈ 0.44</b>, a clear upward tilt.</li>
+                  <li>But that's a trick of <b>city size</b>. Big cities have more immigrants <em>and</em> dearer homes, so totting up totals just re-measures "big city versus small county."</li>
+                  <li><b>Divide by population</b> to isolate immigration itself and the trend collapses to <b>r ≈ 0</b> — the priciest market, <b>Taipei</b>, is actually <em>below</em> average on immigrant share, while the most-immigrant places (<b>Hsinchu County</b>, <b>Taoyuan</b>) are mid-priced factory and science-park counties.</li>
                 </ul>
-                <p>So immigration and house prices are mostly answering different questions here: one traces where the work is, the other where the wealth is — and in Taiwan those aren't the same places.</p>` } },
+                <p>So the honest answer is no — immigration doesn't move prices here. It follows the <em>jobs</em>, into industrial towns; the money follows something else. The apparent link was population wearing a disguise.</p>` } },
 };
 let activeQuestionRead = null;   // interpretation blurb for the current question (for the "How to read this" popup)
 
@@ -1692,7 +1748,11 @@ function applyUrlPreset() {
     ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
   }
   if (preset.towers) state.showTowers = true;
-  if (preset.immigration) state.showImmigration = true;
+  if (preset.immigration) {
+    state.showImmigration = true;
+    const mapBtn = document.querySelector('#viewToggle button[data-view="map"]');
+    if (mapBtn) mapBtn.textContent = "Chart";   // this question's "map" view is the scatter
+  }
   setQuestionBanner(preset);
 }
 

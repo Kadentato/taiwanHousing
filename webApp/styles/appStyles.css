@@ -490,13 +490,25 @@ body.landingBody {
           drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
 }
 
-/* Foreign-resident-share dots for the "does immigration move prices?" map. */
-.leaflet-div-icon.immIcon { background: transparent; border: 0; }
-.immIcon svg {
-  display: block;
-  filter: drop-shadow(.7px 0 0 #fff) drop-shadow(-.7px 0 0 #fff) drop-shadow(0 .7px 0 #fff)
-          drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
+/* The "does immigration move prices?" scatter view, with its Total ⇄ Per-person teachable toggle. */
+.immView { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 14px 16px 10px; gap: 12px; background: var(--paper); }
+#immView[hidden] { display: none; }
+.immBar { display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap; }
+.immToggle { width: 240px; flex-shrink: 0; align-self: center; }
+.immCallout {
+  flex: 1 1 320px; min-width: 0; font-size: 13.5px; line-height: 1.5;
+  padding: 10px 14px; border-radius: 10px; border: 1px solid;
 }
+.immCallout.warn { background: #fbeee2; border-color: #eec6a2; color: #86532c; }
+.immCallout.good { background: var(--accent-soft); border-color: #bcd3cc; color: #2c4d45; }
+.immCallout .immTag {
+  display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 999px; margin-right: 8px; vertical-align: 1px;
+}
+.immCallout.warn .immTag { background: #e8a56a; color: #fff; }
+.immCallout.good .immTag { background: var(--accent); color: #fff; }
+.immChartWrap { position: relative; flex: 1; min-height: 0; width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+#immChart { position: absolute; inset: 10px 12px; }
 
 /* Self-updating build marker, bottom-left. Confirms which assets the browser loaded. */
 .buildTag {
@@ -551,6 +563,9 @@ body.landingBody {
   .mapView { display: block; }
   #map { height: 62vh; min-height: 340px; }
   .tableView { height: 74vh; min-height: 360px; }
+  .immView { height: 82vh; min-height: 480px; }
+  .immBar { flex-direction: column; align-items: stretch; }
+  .immToggle { width: 100%; }
   .viewToggle { width: auto; }              /* Map / Records shrink to content, question gets the room */
   .chartPanel { height: 200px; }
   .legend { font-size: 10.5px; }
