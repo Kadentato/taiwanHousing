@@ -388,20 +388,15 @@ function renderMap() {
   const lisaMode = state.colorMode === "lisa" && state.level === "district";
   const enough = (f) => aggCount(f) >= state.minN;                // small-n greyed out
   const feats = featuresForLevel();
-  // Immigration question: colour the choropleth by foreign-resident COUNT (unless the toggle is on "price",
-  // where it behaves like the normal price map, so you can flip the same map between the two).
-  const immCount = state.showImmigration && state.level === "city" && state.immMode === "immigrants";
-  const immMetric = { label: "Foreign residents", fmt: (v) => Math.round(v).toLocaleString() };
 
   const bins = lisaMode ? []
-    : immCount ? quantileBins(feats.map(immValue).filter((v) => v != null))
     : (state.fixedScale ? globalBins(metricKey)
        : quantileBins(feats.filter(enough).map((f) => aggMetric(f, metricKey)).filter((v) => v != null)));
 
   const fillFor = (feature) => {
     if (!enough(feature)) return NO_DATA;
     if (lisaMode) return LISA_COLORS[feature.properties.lisa] || NO_DATA;
-    const v = immCount ? immValue(feature) : aggMetric(feature, metricKey);
+    const v = aggMetric(feature, metricKey);
     return v == null ? NO_DATA : colorFor(v, bins);
   };
 
@@ -456,9 +451,8 @@ function renderMap() {
   else {
     const note = (state.showTowers && state.level === "city")
       ? "🏙️ icon height ∝ each region's tallest building" : null;
-    updateLegend(bins, immCount ? immMetric : metric, note, state.level === "district");
+    updateLegend(bins, metric, note, state.level === "district");
   }
-  if (state.showImmigration && state.level === "city") updateImmCallout(state.immMode);
 }
 
 function updateLisaLegend() {
@@ -1053,13 +1047,13 @@ function setView(view) {
 function renderAll() {
   state.page = 0;   // filter/view changes reset paging; sort & pager call renderTable directly
   renderStats();
-  // The immigration question keeps the Taiwan map but adds a flip toggle (count ⇄ price) above it.
-  const immMap = state.showImmigration && state.level === "city";
-  document.getElementById("immBar").hidden = !(immMap && state.view === "map");
-  if (immMap) document.getElementById("findingBar").hidden = true;   // the callout is the finding here
-  document.getElementById("mapView").hidden = state.view !== "map";
+  // The immigration question swaps the single map for two small side-by-side Taiwan maps (count | price).
+  const immMaps = state.showImmigration && state.level === "city" && state.view === "map";
+  document.getElementById("immView").hidden = !immMaps;
+  document.getElementById("mapView").hidden = state.view !== "map" || immMaps;
   document.getElementById("tableView").hidden = state.view !== "table";
   if (state.view === "table") { renderTable(); return; }
+  if (immMaps) { renderImmMaps(); return; }
   renderMap();
   updateLabelsVisibility();
   updateMrtVisibility();
@@ -1212,27 +1206,58 @@ function updateTowerVisibility() {
   }
 }
 
-// ------------------------------------------------ immigration map ---
-// "Does immigration move prices?" — the same Taiwan choropleth, flipped between foreign-resident
-// COUNT and home PRICE. The two nearly match (both favour big cities → r ≈ 0.44), but the
-// mismatches (Taipei, Taoyuan) give away that it's city size, not immigration. The callout teaches it.
-function immValue(feature) {
-  const im = IMMIGRATION[feature.properties.cityCode];
-  return im ? im.foreign : null;
-}
-function updateImmCallout(mode) {
-  const el = document.getElementById("immCallout");
-  if (!el) return;
-  if (mode === "immigrants") {
-    el.className = "immCallout warn";
-    el.innerHTML = `<span class="immTag">Immigrants</span> Coloured by <b>how many foreign residents</b> live in each area — the big cities lead. `
-      + `Now flip to <b>Home prices</b> and see whether the dark areas match →`;
-  } else {
-    el.className = "immCallout good";
-    el.innerHTML = `<span class="immTag">Home prices</span> The same map, by price — they <em>rhyme</em>, but not really. The priciest, <b>Taipei</b>, `
-      + `is only middling for immigrants; the most-immigrant, <b>Taoyuan</b>, is only mid-priced. The overlap is <b>city size</b> `
-      + `(a headcount scores r ≈ 0.44; per person it's ≈ 0), not immigration lifting prices.`;
+// ---------------------------------------- immigration side-by-side maps ---
+// "Does immigration move prices?" — two small Taiwan choropleths shown at once: one by foreign-resident
+// COUNT, one by home PRICE. Both visible, so you compare without flipping. They nearly match (city size),
+// but Taipei (priciest, mid-immigration) and Taoyuan (most immigrants, mid-price) give away the confound.
+const IMM_ISLAND = new Set(["w", "x"]);   // Kinmen, Penghu — omitted so the main island fills the frame
+
+// Project the city polygons into a fixed portrait viewBox (equirectangular, latitude-corrected).
+function buildImmMapPaths() {
+  const feats = [...store.geom.city.values()].filter(
+    (f) => IMMIGRATION[f.properties.cityCode] && !IMM_ISLAND.has(f.properties.cityCode));
+  const each = (geom, cb) => {
+    const polys = geom.type === "MultiPolygon" ? geom.coordinates : [geom.coordinates];
+    for (const poly of polys) for (const ring of poly) for (const p of ring) cb(p[0], p[1]);
+  };
+  let loMin = Infinity, loMax = -Infinity, laMin = Infinity, laMax = -Infinity;
+  for (const f of feats) each(f.geometry, (lo, la) => {
+    if (lo < loMin) loMin = lo; if (lo > loMax) loMax = lo; if (la < laMin) laMin = la; if (la > laMax) laMax = la;
+  });
+  const cosLat = Math.cos((laMin + laMax) / 2 * Math.PI / 180);
+  const W = 300, H = 440, PAD = 10;
+  const loSpan = (loMax - loMin) * cosLat, laSpan = laMax - laMin;
+  const scale = Math.min((W - 2 * PAD) / loSpan, (H - 2 * PAD) / laSpan);
+  const offX = (W - loSpan * scale) / 2, offY = (H - laSpan * scale) / 2;
+  const proj = (lo, la) => [offX + (lo - loMin) * cosLat * scale, offY + (laMax - la) * scale];
+  const paths = {};
+  for (const f of feats) {
+    const polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+    let d = "";
+    for (const poly of polys) for (const ring of poly)
+      d += "M" + ring.map((p) => { const xy = proj(p[0], p[1]); return xy[0].toFixed(1) + "," + xy[1].toFixed(1); }).join("L") + "Z";
+    paths[f.properties.cityCode] = d;
   }
+  return { feats, paths, W, H };
+}
+
+function renderImmMaps() {
+  const { feats, paths, W, H } = buildImmMapPaths();
+  const countVal = (f) => IMMIGRATION[f.properties.cityCode].foreign;
+  const priceVal = (f) => (f.properties.saleMedUnitPrice == null ? null : f.properties.saleMedUnitPrice * M2_PER_PING);
+  const countBins = quantileBins(feats.map(countVal));
+  const priceBins = quantileBins(feats.map(priceVal).filter((v) => v != null));
+  const svg = (valFn, bins) => {
+    let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
+    for (const f of feats) {
+      const v = valFn(f), c = v == null ? NO_DATA : colorFor(v, bins);
+      s += `<path d="${paths[f.properties.cityCode]}" fill="${c}" stroke="#fff" stroke-width="0.7" stroke-linejoin="round"/>`;
+    }
+    return s + "</svg>";
+  };
+  const left = document.getElementById("immMapLeft"), right = document.getElementById("immMapRight");
+  if (left) left.innerHTML = svg(countVal, countBins);
+  if (right) right.innerHTML = svg(priceVal, priceBins);
 }
 
 // A pastel-pink 💡 button in the map's top-right corner. It opens the current question's
@@ -1361,12 +1386,6 @@ function wireControls() {
   document.getElementById("viewToggle").onclick = (e) => {
     if (!e.target.dataset.view) return;
     setView(e.target.dataset.view);
-  };
-  document.getElementById("immToggle").onclick = (e) => {
-    const b = e.target.closest("button"); if (!b) return;
-    state.immMode = b.dataset.imm;
-    document.querySelectorAll("#immToggle button").forEach((x) => x.classList.toggle("active", x === b));
-    renderAll();   // recolours the choropleth + updates the callout
   };
   document.getElementById("chartCollapse").onclick = (e) => {
     const panel = document.getElementById("chartPanel");
@@ -1626,15 +1645,15 @@ const QUESTION_PRESETS = {
                 <p>Read it as a symptom, not a cause — a tall skyline is what a big, dense, moneyed city grows, not the reason its homes cost what they do. The tower and the price tag are both children of the same demand, which makes height a decent hunch and a poor valuation.</p>` } },
   immigration: { metric: "unit", immigration: true,
               title: "Does immigration move prices?",
-              hint: "The Taiwan map, coloured by how many foreign residents each area has — flip it to home prices and compare.",
+              hint: "Two Taiwan maps side by side — where the immigrants are, and where the money is. Do they match?",
               finding: `The immigrant map and the price map nearly rhyme (<b>r ≈ 0.44</b>) — but that's city size, not immigration: per person, it's <b>flat</b>.`,
               read: {
-                guide: `<h2>Reading the immigration map</h2>
-                <p>Does more immigration mean pricier homes? This is the Taiwan map, coloured two ways you can flip between: by <b>how many foreign residents</b> each city and county has, and by <b>home prices</b>. The whole question is whether the two light up the same places.</p>
-                <p class="lookFor"><b>What to watch:</b> flip <b>Immigrants ⇄ Home prices</b> and compare where the map runs dark — if immigration drove prices, the two maps would match.</p>
+                guide: `<h2>Reading the two maps</h2>
+                <p>Does more immigration mean pricier homes? Here are two small Taiwan maps side by side — the left one shaded by <b>how many foreign residents</b> each area has, the right by <b>home prices</b>. The whole question is whether they light up the same places.</p>
+                <p class="lookFor"><b>What to watch:</b> compare the two maps region by region — if immigration drove prices, the dark areas would sit in the same spots on both.</p>
                 <ul>
                   <li>The counts are the government's own headcount of foreign residents — and about three in four are migrant workers, who rarely buy a home.</li>
-                  <li>The legend shows the scale for whichever layer you're viewing; click any area for its price detail.</li>
+                  <li>Both maps use the same colour scale (pale = low, dark = high); outlying islands are left off so the main island fills the frame.</li>
                 </ul>`,
                 findings: `<h2>What the numbers turned out to be</h2>
                 <p>So — do the two maps match? Loosely, and that loose match is the trap.</p>
@@ -1690,14 +1709,7 @@ function applyUrlPreset() {
     ensureMrtStations().catch(() => {});   // warm the station cache before the drill-in
   }
   if (preset.towers) state.showTowers = true;
-  if (preset.immigration) {
-    state.showImmigration = true;
-    // The map + flip toggle are the focus here; the time chart isn't — start it collapsed for room.
-    const cp = document.getElementById("chartPanel");
-    if (cp) cp.classList.add("collapsed");
-    const cc = document.getElementById("chartCollapse");
-    if (cc) cc.setAttribute("aria-expanded", "false");
-  }
+  if (preset.immigration) state.showImmigration = true;
   setQuestionBanner(preset);
 }
 

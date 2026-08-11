@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=32" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=33" />
 </head>
 <body>
   <header class="appHeader">
@@ -77,12 +77,23 @@
         <button class="findingHow" id="findingHow" type="button">How we know →</button>
       </div>
 
-      <div class="immBar" id="immBar" hidden>
-        <div class="segmented immToggle" id="immToggle">
-          <button data-imm="immigrants" class="active" type="button">Immigrants</button>
-          <button data-imm="price" type="button">Home prices</button>
+      <div id="immView" class="immView" hidden>
+        <div class="immMaps">
+          <figure class="immMap">
+            <figcaption>Where the immigrants are <span>foreign residents, by headcount</span></figcaption>
+            <div class="immMapSvg" id="immMapLeft"></div>
+          </figure>
+          <figure class="immMap">
+            <figcaption>Where the money is <span>median price per ping</span></figcaption>
+            <div class="immMapSvg" id="immMapRight"></div>
+          </figure>
         </div>
-        <div class="immCallout" id="immCallout"></div>
+        <div class="immCallout good" id="immCallout">
+          <span class="immTag">Compare</span> Both maps run dark in the big cities — which is why a headcount
+          scores a real-looking <b>r ≈ 0.44</b>. But look closer: the priciest, <b>Taipei</b>, is only middling
+          for immigrants, and the most-immigrant, <b>Taoyuan</b>, is only mid-priced. What the two maps really
+          share is <b>city size</b> — not immigration lifting prices. Per person, the link is ≈ 0.
+        </div>
       </div>
 
       <div id="mapView" class="mapView">
@@ -131,6 +142,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=72"></script>
+  <script src="scripts/appMain.js?v=73"></script>
 </body>
 </html>
