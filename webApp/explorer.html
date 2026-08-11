@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=31" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=32" />
 </head>
 <body>
   <header class="appHeader">
@@ -77,6 +77,14 @@
         <button class="findingHow" id="findingHow" type="button">How we know →</button>
       </div>
 
+      <div class="immBar" id="immBar" hidden>
+        <div class="segmented immToggle" id="immToggle">
+          <button data-imm="immigrants" class="active" type="button">Immigrants</button>
+          <button data-imm="price" type="button">Home prices</button>
+        </div>
+        <div class="immCallout" id="immCallout"></div>
+      </div>
+
       <div id="mapView" class="mapView">
         <div id="map"></div>
         <div class="chartPanel" id="chartPanel">
@@ -91,17 +99,6 @@
             <div class="chartCanvasWrap"><canvas id="timeChart"></canvas></div>
           </div>
         </div>
-      </div>
-
-      <div id="immView" class="immView" hidden>
-        <div class="immBar">
-          <div class="segmented immToggle" id="immToggle">
-            <button data-imm="total" class="active" type="button">Total residents</button>
-            <button data-imm="percapita" type="button">Per person</button>
-          </div>
-          <div class="immCallout" id="immCallout"></div>
-        </div>
-        <div class="immChartWrap"><canvas id="immChart"></canvas></div>
       </div>
 
       <div id="tableView" class="tableView" hidden>
@@ -134,6 +131,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=71"></script>
+  <script src="scripts/appMain.js?v=72"></script>
 </body>
 </html>
