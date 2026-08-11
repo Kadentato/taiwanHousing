@@ -1243,9 +1243,16 @@ function buildImmMapPaths() {
 
 function renderImmMaps() {
   const { feats, paths, W, H } = buildImmMapPaths();
+  // Three shadings of the same island: raw immigrant headcount, immigrants per 100 residents, and home price.
+  // Count matches price (both track city size); per-person breaks the match — which is the whole lesson.
   const countVal = (f) => IMMIGRATION[f.properties.cityCode].foreign;
+  const shareVal = (f) => {
+    const im = IMMIGRATION[f.properties.cityCode];
+    return im.pop ? (im.foreign / im.pop) * 100 : null;
+  };
   const priceVal = (f) => (f.properties.saleMedUnitPrice == null ? null : f.properties.saleMedUnitPrice * M2_PER_PING);
   const countBins = quantileBins(feats.map(countVal));
+  const shareBins = quantileBins(feats.map(shareVal).filter((v) => v != null));
   const priceBins = quantileBins(feats.map(priceVal).filter((v) => v != null));
   const svg = (valFn, bins) => {
     let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
@@ -1255,9 +1262,12 @@ function renderImmMaps() {
     }
     return s + "</svg>";
   };
-  const left = document.getElementById("immMapLeft"), right = document.getElementById("immMapRight");
-  if (left) left.innerHTML = svg(countVal, countBins);
-  if (right) right.innerHTML = svg(priceVal, priceBins);
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  const priceSvg = svg(priceVal, priceBins);
+  set("immMapCount", svg(countVal, countBins));
+  set("immMapShare", svg(shareVal, shareBins));
+  set("immMapPrice1", priceSvg);   // same price map repeated as the anchor in both rows
+  set("immMapPrice2", priceSvg);
 }
 
 // A pastel-pink 💡 button in the map's top-right corner. It opens the current question's
@@ -1646,14 +1656,14 @@ const QUESTION_PRESETS = {
   immigration: { metric: "unit", immigration: true,
               title: "Does immigration move prices?",
               hint: "Two Taiwan maps side by side — where the immigrants are, and where the money is. Do they match?",
-              finding: `The immigrant map and the price map nearly rhyme (<b>r ≈ 0.44</b>) — but that's city size, not immigration: per person, it's <b>flat</b>.`,
+              finding: `By raw headcount the immigrant and price maps match (<b>r ≈ 0.44</b>) — but count immigrants <b>per person</b> and it vanishes (<b>≈ 0</b>). It was city size all along.`,
               read: {
-                guide: `<h2>Reading the two maps</h2>
-                <p>Does more immigration mean pricier homes? Here are two small Taiwan maps side by side — the left one shaded by <b>how many foreign residents</b> each area has, the right by <b>home prices</b>. The whole question is whether they light up the same places.</p>
-                <p class="lookFor"><b>What to watch:</b> compare the two maps region by region — if immigration drove prices, the dark areas would sit in the same spots on both.</p>
+                guide: `<h2>Reading the maps</h2>
+                <p>Does more immigration mean pricier homes? The <b>home-price map</b> on the right never changes — it's your fixed yardstick. The map on the left shows immigrants two ways, one row at a time. The whole question is whether the left map ever lines up with the right.</p>
+                <p class="lookFor"><b>What to watch:</b> in row 1 the two maps light up the same cities — a match. In row 2 the immigrant map is redrawn <em>per person</em>, and the match falls apart. That break is the answer.</p>
                 <ul>
                   <li>The counts are the government's own headcount of foreign residents — and about three in four are migrant workers, who rarely buy a home.</li>
-                  <li>Both maps use the same colour scale (pale = low, dark = high); outlying islands are left off so the main island fills the frame.</li>
+                  <li>Every map uses the same colour scale (pale = low, dark = high); outlying islands are left off so the main island fills the frame.</li>
                 </ul>`,
                 findings: `<h2>What the numbers turned out to be</h2>
                 <p>So — do the two maps match? Loosely, and that loose match is the trap.</p>

@@ -492,14 +492,30 @@ body.landingBody {
 
 /* "Does immigration move prices?" — two small Taiwan maps side by side (count | price) so you compare
    without flipping, plus a callout that names the mismatches. */
-.immView { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 16px 18px; gap: 14px; background: var(--paper); overflow: auto; }
+.immView { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 12px 18px 14px; gap: 10px; background: var(--paper); overflow: auto; }
 #immView[hidden] { display: none; }
-.immMaps { flex: 1; display: flex; gap: 24px; min-height: 0; justify-content: center; }
-.immMap { flex: 1 1 0; max-width: 360px; margin: 0; display: flex; flex-direction: column; min-height: 0; }
-.immMap figcaption { font-size: 14px; font-weight: 680; color: var(--ink); text-align: center; margin-bottom: 8px; }
-.immMap figcaption span { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+
+.immHead { text-align: center; max-width: 780px; margin: 0 auto; }
+.immVerdict { display: inline-block; font-size: 18px; font-weight: 760; color: var(--ink); letter-spacing: -.2px; }
+.immVerdictSub { display: block; font-size: 12.5px; line-height: 1.45; color: var(--muted); margin-top: 3px; }
+
+/* Each comparison is one row: a numbered label, then the changing immigrant map beside the fixed price map. */
+.immRow { display: flex; align-items: center; gap: 20px; max-width: 880px; width: 100%; margin: 0 auto; }
+.immRowLabel { flex: 0 0 200px; display: flex; gap: 10px; }
+.immStep {
+  flex: 0 0 auto; width: 23px; height: 23px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-size: 12.5px; font-weight: 700; display: grid; place-items: center;
+}
+.immRowLabel b { display: block; font-size: 13.5px; color: var(--ink); margin-bottom: 2px; }
+.immRowLabel > div > span { font-size: 11.5px; line-height: 1.45; color: var(--muted); }
+
+.immMaps { flex: 1; display: flex; gap: 20px; min-height: 0; justify-content: center; }
+.immMap { flex: 1 1 0; max-width: 178px; margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.immMap figcaption { font-size: 12px; font-weight: 680; color: var(--ink); text-align: center; margin-bottom: 5px; }
+.immMap figcaption span { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); margin-top: 1px; }
+.immMap.match figcaption { color: var(--accent-ink); }   /* the fixed yardstick, tinted so the eye anchors on it */
 .immMapSvg { flex: 1; min-height: 0; display: flex; justify-content: center; }
-.immMapSvg svg { height: 100%; max-height: 100%; width: auto; }
+.immMapSvg svg { height: 188px; max-height: 188px; width: auto; }
 .immCallout {
   flex-shrink: 0; font-size: 13px; line-height: 1.55; max-width: 820px; margin: 0 auto;
   padding: 11px 15px; border-radius: 10px; border: 1px solid;
@@ -565,9 +581,11 @@ body.landingBody {
   #map { height: 62vh; min-height: 340px; }
   .tableView { height: 74vh; min-height: 360px; }
   .immView { height: auto; min-height: 80vh; }
-  .immMaps { flex-direction: column; align-items: center; }
-  .immMap { max-width: 320px; width: 100%; }
-  .immMapSvg { height: 46vh; }
+  .immRow { flex-direction: column; align-items: stretch; gap: 10px; }
+  .immRowLabel { flex: none; }
+  .immMaps { gap: 14px; }
+  .immMap { max-width: none; }
+  .immMapSvg svg { height: 34vh; }
   .viewToggle { width: auto; }              /* Map / Records shrink to content, question gets the room */
   .chartPanel { height: 200px; }
   .legend { font-size: 10.5px; }
