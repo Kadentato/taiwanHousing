@@ -337,6 +337,28 @@ body.aboutBody { height: auto; min-height: 100vh; display: block; overflow: auto
   font-size: 14.5px; color: var(--accent-ink);
 }
 
+/* "How this was built" section: the collaboration loop (a decision tree, the steps marked
+   "me" are where I steered it) and a ✓ / ✕ split of the division of labour. */
+.aiLoop { max-width: 520px; margin: 18px auto 22px; display: flex; flex-direction: column; align-items: stretch; }
+.aiStep { background: #fff; border: 1px solid var(--edge); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--ink); line-height: 1.45; text-align: center; }
+.aiStep.decision { border-color: #dcc9a4; background: #fbf6ea; font-weight: 600; }
+.aiStep.mine { border-left: 3px solid var(--accent); background: #f2f8f6; text-align: left; }
+.aiStep .who { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #fff; background: var(--accent); padding: 1px 7px; border-radius: 999px; margin-right: 8px; vertical-align: 1px; }
+.aiStep .no { display: block; margin-top: 4px; font-size: 12.5px; font-weight: 500; color: #a8792e; }
+.aiStep.ship { background: var(--accent-soft); border-color: #bcd3cc; color: #2c4d45; font-weight: 700; }
+.prose p .who { display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #fff; background: var(--accent); padding: 1px 7px; border-radius: 999px; vertical-align: 1px; }
+.aiArrow { align-self: center; color: var(--muted); font-size: 12.5px; padding: 5px 0; letter-spacing: .5px; }
+.aiCols { display: flex; gap: 18px; margin: 16px 0 20px; flex-wrap: wrap; }
+.aiCol { flex: 1 1 240px; border: 1px solid var(--edge); border-radius: 12px; padding: 14px 16px 10px; background: #fff; }
+.aiCol h3 { margin: 0 0 6px; font-size: 14.5px; }
+.aiCol.good h3 { color: var(--accent-ink); }
+.aiCol.bad h3 { color: #b0674a; }
+.aiCol ul { list-style: none; margin: 0; padding: 0; }
+.aiCol li { position: relative; padding: 7px 0 7px 24px; font-size: 13.5px; line-height: 1.45; color: var(--body); border-top: 1px solid var(--line); }
+.aiCol li:first-child { border-top: 0; }
+.aiCol.good li::before { content: "\2713"; position: absolute; left: 2px; top: 7px; color: var(--accent-ink); font-weight: 700; }
+.aiCol.bad li::before { content: "\2715"; position: absolute; left: 2px; top: 7px; color: #c07a5c; font-weight: 700; }
+
 /* Two-page popup footer: back / dots / next. */
 .modalNav {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;

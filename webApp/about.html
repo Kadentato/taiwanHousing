@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>About — Taiwan Housing Explorer</title>
-  <link rel="stylesheet" href="styles/appStyles.css?v=39" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=40" />
 </head>
 <body class="aboutBody">
   <header class="appHeader">
@@ -217,6 +217,64 @@
         <li>The raw table will cheerfully show you the outliers, because it's meant to be the honest,
         unfiltered view. The map hides them behind medians; the table doesn't.</li>
       </ul>
+
+      <h2>A note on how this was built</h2>
+      <p>I built a lot of this with an AI — Claude — and it wasn't one magic prompt. It was weeks of
+      back-and-forth — it proposes, I reshape, we argue it out. It wrote most of the grunt code — the fiddly,
+      repetitive stuff — and sped up a lot of the grind, but plenty of the legwork stayed mine: deciding what was
+      worth asking, digging through the data, compiling the outside datasets, and checking its numbers against the
+      source data myself.</p>
+      <p>Roughly, every feature ran through this. The steps marked <b class="who">me</b> are where I got my hands
+      into what Claude suggested:</p>
+
+      <div class="aiLoop">
+        <div class="aiStep mine"><b class="who">me</b> I pose the problem — and roughly how it ought to feel</div>
+        <div class="aiArrow">&darr;</div>
+        <div class="aiStep">Claude lays out an approach, usually two or three options</div>
+        <div class="aiArrow">&darr;</div>
+        <div class="aiStep mine"><b class="who">me</b> I rework the plan — merge two options, swap the method, add a rule, cut what won&rsquo;t fly</div>
+        <div class="aiArrow">&darr;</div>
+        <div class="aiStep decision">Happy with the shape of it?<span class="no">no &rarr; I redirect, it re-proposes &#8635;</span></div>
+        <div class="aiArrow">&darr; yes</div>
+        <div class="aiStep">We build it, then I look at the actual result</div>
+        <div class="aiArrow">&darr;</div>
+        <div class="aiStep mine"><b class="who">me</b> I send it back — &ldquo;bigger maps,&rdquo; &ldquo;that number&rsquo;s off,&rdquo; &ldquo;try it as a small-multiple instead&rdquo;</div>
+        <div class="aiArrow">&darr;</div>
+        <div class="aiStep decision">Is it honest <em>and</em> clear?<span class="no">no &rarr; back a step, we rework it &#8635;</span></div>
+        <div class="aiArrow">&darr; yes</div>
+        <div class="aiStep ship">Ship it — after I fact-check anything it claims</div>
+      </div>
+
+      <p>And the division of labour was pretty consistent:</p>
+      <div class="aiCols">
+        <div class="aiCol good">
+          <h3>What it was genuinely good at</h3>
+          <ul>
+            <li>Writing fiddly code fast — and rewriting it the moment I changed my mind</li>
+            <li>Remembering the map-projection maths so I didn&rsquo;t have to</li>
+            <li>Scraping the web and specific sites for the outside data I didn&rsquo;t have — tower heights, foreign-resident counts</li>
+            <li>Digging up freely-licensed building photos and checking every licence</li>
+            <li>Catching bugs I&rsquo;d have stared at for an hour (those white cracks in the map)</li>
+          </ul>
+        </div>
+        <div class="aiCol bad">
+          <h3>What stayed on me</h3>
+          <ul>
+            <li>Deciding which questions were worth asking in the first place</li>
+            <li>Catching the confident-but-wrong stuff — a photo of the <em>old</em> Taichung tower, a stat that merely sounded right</li>
+            <li>Knowing when a chart was clever but confusing</li>
+            <li>Knowing the data well enough to say &ldquo;that can&rsquo;t be right, go and check&rdquo;</li>
+          </ul>
+        </div>
+      </div>
+      <p>The turns that mattered were usually me overruling the obvious version. The immigration question is the
+      one I remember — Claude kept building it as a scatter plot; it looked clever and told you nothing, so I made
+      it put the data back on a map of Taiwan and flip between two of them, and only then did the point land. Most
+      of the good calls looked like that: not &ldquo;do it,&rdquo; but &ldquo;no — do it this other way.&rdquo;</p>
+      <p>Which points at the one rule the whole thing ran on: an LLM will hand you plausible-but-wrong just as
+      confidently as it hands you right, so the only real defence is knowing the subject well enough to catch it —
+      and checking anyway. The workings are the rest of this page; whatever the split of the labour, every number
+      on the site is one I re-derived and stand behind.</p>
 
       <h2>Why I bothered</h2>
       <p>None of this is groundbreaking. It's mostly the unglamorous work of taking data that exists but is
