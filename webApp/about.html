@@ -19,9 +19,9 @@
 
   <main class="aboutWrap">
     <article class="prose">
-      <p class="lead">Short version: it's a map and a searchable table of house prices across Taiwan,
-      built out of the government's open transaction data. This page is me explaining what it's for and
-      how the thing actually works, because I think the how is the interesting part.</p>
+      <p class="lead">Short version: it's a set of clickable questions, a map, and a searchable table of
+      house prices across Taiwan, built out of the government's open transaction data. This page is me
+      explaining what it's for and how the thing actually works, because I think the how is the interesting part.</p>
 
       <p><b>Want the raw numbers?</b> The full dataset and the code that built it are on
       <a href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener">GitHub</a>, you can
@@ -43,6 +43,27 @@
       or any SQL. Pick a district, see what a place costs, watch how it's moved over the years, compare it
       to everywhere else, filter down to "apartments with parking in Kaohsiung," and grab the raw numbers if
       you want them.</p>
+
+      <h2>From a map to a set of questions</h2>
+      <p>A map on its own answers "what does this place cost." But most people don't arrive with a district in
+      mind — they arrive with a <em>question</em>. So the front door is now a handful of them, each wired to
+      open the map already set up to answer it: does living near the MRT cost more, where's the market busiest,
+      do taller-tower cities charge more, does immigration move prices. Pick one and you land mid-thought, not
+      on a blank map.</p>
+      <p>Two of those questions reach outside the housing data on purpose. For the skyline one I compiled the
+      tallest building in every city and county by hand — architectural height, chimneys and masts excluded —
+      and drew each one to scale on the map; click a tower and, where a freely-licensed photo exists, you get
+      the building itself. For the immigration one I pulled the government's count of foreign residents per
+      county. Crossing two datasets like that is where the interesting — and the misleading — bits live.</p>
+      <p>Which is the other reason the questions exist: to be honest about what a correlation is actually worth.
+      The immigration one is the clearest lesson on the site. By raw headcount it lines up with prices at a
+      real-looking <b>r ≈ 0.44</b> — but that's just city size; both maps are really only counting people.
+      Divide by population and the link collapses to about <b>zero</b>. I built the question so you can watch
+      that happen, because "these two maps look alike" is exactly the trap careful data work is meant to catch.</p>
+      <p>The last thing on the homepage isn't a question but a toy: a price predictor that takes a home's
+      details and hands back a ballpark, learned from about three million past sales and honest about its own
+      uncertainty — the <em>range</em> matters more than the single number. Like everything else here, it runs
+      entirely in your browser.</p>
 
       <h2>The data fights back</h2>
       <p>A few things about the raw files ate way more of my time than I expected:</p>
@@ -187,6 +208,9 @@
         the map answers "where are the expensive areas," not "find me this one building." Full breakdown of
         what's geocoded and why the rest isn't is <a href="#geocoding">above</a>.</li>
         <li>School distance is stubbed out in the schema but not actually filled in.</li>
+        <li>The outside datasets — tallest buildings, foreign-resident counts — are small and hand-compiled
+        from public sources, so treat those two questions as well-checked hunches, not gospel. And building
+        photos exist only for the well-known towers; the rest fall back to a placeholder.</li>
         <li>Big districts (100k+ sales) draw every dot on one canvas, so the very first click into one can take a
         few seconds to fetch and render; after that it's instant. Colours and
         the time chart use the full data.</li>
