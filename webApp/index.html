@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer — poke around the housing market</title>
-  <link rel="stylesheet" href="styles/appStyles.css?v=36" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=37" />
 </head>
 <body class="landingBody">
   <header class="appHeader">
@@ -107,9 +107,9 @@
 
     <section class="qSection">
       <div class="qSectionHead">
-        <h2 class="qSectionTitle">Have a play</h2>
-        <p class="qSectionLead">Less a question, more a toy — hand it the details of a home and watch the model
-          have a go at pricing it.</p>
+        <h2 class="qSectionTitle">Try your hand</h2>
+        <p class="qSectionLead">Two hands-on ways in: let the model price a home you describe, or take the raw
+          data away and dig into it yourself.</p>
       </div>
       <div class="questionGrid">
         <a class="questionCard" href="predictor.html">
@@ -119,6 +119,26 @@
             about how sure it actually is.</p>
           <div class="qGo">Get an estimate →</div>
         </a>
+
+        <div class="dataBox">
+          <div class="qEmoji">📦</div>
+          <h3>Take the data home</h3>
+          <p>It's all open — grab a clean slice and dig in yourself, in a spreadsheet, pandas or R.</p>
+          <div class="dataDownloads">
+            <a class="dlRow" href="dataFiles/marketSeriesMonthly.csv" download>
+              <span class="dlName">Monthly price series <span class="dlSub">every city, 2012–now</span></span>
+              <span class="dlMeta">CSV · 268 KB</span>
+            </a>
+            <a class="dlRow" href="dataFiles/taiwanHousing.sqlite" download>
+              <span class="dlName">Browsable sample <span class="dlSub">20k sales, ready for SQL</span></span>
+              <span class="dlMeta">SQLite · 11 MB</span>
+            </a>
+            <a class="dlRow out" href="https://github.com/Kadentato/taiwanHousing" target="_blank" rel="noopener">
+              <span class="dlName">Full dataset &amp; the code that built it <span class="dlSub">all 3.4M sales</span></span>
+              <span class="dlMeta">GitHub ↗</span>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 

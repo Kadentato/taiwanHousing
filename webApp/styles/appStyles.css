@@ -444,6 +444,28 @@ body.landingBody {
 .questionCard .qGo { margin-top: 16px; font-size: 13.5px; font-weight: 620; color: var(--accent-ink); }
 .questionCard:hover .qGo { text-decoration: underline; }
 
+/* "Take the data home" box — a peer of the predictor card in the hands-on section,
+   holding a small stack of direct download links. */
+.dataBox {
+  display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--edge); border-radius: 16px;
+  padding: 22px 22px 20px; box-shadow: 0 1px 2px rgba(60, 52, 40, .05);
+}
+.dataBox h3 { font-size: 18.5px; margin: 0 0 8px; font-weight: 680; line-height: 1.25; color: var(--ink); }
+.dataBox > p { font-size: 14px; color: var(--body); margin: 0 0 15px; line-height: 1.55; }
+.dataDownloads { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+.dlRow {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  text-decoration: none; color: inherit;
+  border: 1px solid var(--edge); border-radius: 10px; padding: 10px 13px; background: var(--paper);
+  transition: border-color .14s ease, background .14s ease, transform .14s ease;
+}
+.dlRow:hover { border-color: rgba(63, 125, 112, .45); background: var(--accent-soft); transform: translateX(2px); }
+.dlName { font-size: 14px; font-weight: 620; color: var(--ink); }
+.dlName .dlSub { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); margin-top: 1px; }
+.dlMeta { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.dlRow.out .dlMeta { color: var(--accent-ink); font-weight: 600; }
+
 .landingFoot {
   text-align: center; margin: 56px auto 0; max-width: 560px;
   font-size: 14px; color: #7a7263; line-height: 1.65;
