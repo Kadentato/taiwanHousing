@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer — poke around the housing market</title>
-  <link rel="stylesheet" href="styles/appStyles.css?v=35" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=36" />
 </head>
 <body class="landingBody">
   <header class="appHeader">
@@ -26,76 +26,101 @@
       <h2>So — what do you actually want to know about <span class="accent">Taiwan's housing</span>?</h2>
       <p>Every home sale in Taiwan gets reported by law — millions of them, buried in a government
         data dump that isn't really built to be read. I cleaned it up and put it on a map you can
-        click around. <span class="wink">Pick a question — I've started the good ones for you.</span></p>
+        click around. <span class="wink">Start simple, or jump straight to the mash-ups — I've teed up the good ones for you.</span></p>
     </div>
 
-    <div class="questionGrid">
-      <a class="questionCard" href="explorer.html?q=mrt">
-        <span class="qTag">Start here</span>
-        <div class="qEmoji">🚇</div>
-        <h3>Does living near the MRT cost more?</h3>
-        <p>Click into a Taipei district and each home shows two things at once — colour for how close it
-          sits to the metro, size for what it costs. The nearest ones do sell for more per ping;
-          <em>how much is really the metro</em> is the fun part.</p>
-        <div class="qGo">See for yourself →</div>
-      </a>
+    <section class="qSection">
+      <div class="qSectionHead">
+        <h2 class="qSectionTitle">Straight from the registry</h2>
+        <p class="qSectionLead">Just the housing data on its own — clicked, sliced and mapped, with nothing
+          added. The quickest way to get a feel for the place.</p>
+      </div>
+      <div class="questionGrid">
+        <a class="questionCard" href="explorer.html?q=price">
+          <span class="qTag">Start here</span>
+          <div class="qEmoji">💰</div>
+          <h3>Where's the pricey stuff?</h3>
+          <p>Start with the whole island and just keep clicking — region, city, district, right down
+            to a single sold home. The fastest way to see where the money actually lives.</p>
+          <div class="qGo">Follow the money →</div>
+        </a>
 
-      <a class="questionCard" href="explorer.html?q=price">
-        <div class="qEmoji">💰</div>
-        <h3>Where's the pricey stuff?</h3>
-        <p>Start with the whole island and just keep clicking — region, city, district, right down
-          to a single sold home. The fastest way to see where the money actually lives.</p>
-        <div class="qGo">Follow the money →</div>
-      </a>
+        <a class="questionCard" href="explorer.html?q=activity">
+          <div class="qEmoji">🔥</div>
+          <h3>Where's the market buzzing?</h3>
+          <p>The neighbourhoods where homes change hands constantly — and the sleepy corners where
+            barely anything moves.</p>
+          <div class="qGo">Take a look →</div>
+        </a>
 
-      <a class="questionCard" href="explorer.html?q=activity">
-        <div class="qEmoji">🔥</div>
-        <h3>Where's the market buzzing?</h3>
-        <p>The neighbourhoods where homes change hands constantly — and the sleepy corners where
-          barely anything moves.</p>
-        <div class="qGo">Take a look →</div>
-      </a>
+        <a class="questionCard" href="explorer.html?q=size">
+          <div class="qEmoji">📐</div>
+          <h3>Where do you get room to breathe?</h3>
+          <p>Find the parts of Taiwan with genuinely big homes — and the places where you pay a
+            fortune for barely any floor space.</p>
+          <div class="qGo">Compare sizes →</div>
+        </a>
 
-      <a class="questionCard" href="explorer.html?q=size">
-        <div class="qEmoji">📐</div>
-        <h3>Where do you get room to breathe?</h3>
-        <p>Find the parts of Taiwan with genuinely big homes — and the places where you pay a
-          fortune for barely any floor space.</p>
-        <div class="qGo">Compare sizes →</div>
-      </a>
+        <a class="questionCard" href="explorer.html?q=clusters">
+          <div class="qEmoji">🌡️</div>
+          <h3>Where are the hot and cold pockets?</h3>
+          <p>The map flags neighbourhoods that are way pricier — or way cheaper — than everything
+            around them. Bargain-hunting, basically.</p>
+          <div class="qGo">Find the outliers →</div>
+        </a>
+      </div>
+    </section>
 
-      <a class="questionCard" href="explorer.html?q=clusters">
-        <div class="qEmoji">🌡️</div>
-        <h3>Where are the hot and cold pockets?</h3>
-        <p>The map flags neighbourhoods that are way pricier — or way cheaper — than everything
-          around them. Bargain-hunting, basically.</p>
-        <div class="qGo">Find the outliers →</div>
-      </a>
+    <section class="qSection">
+      <div class="qSectionHead">
+        <h2 class="qSectionTitle">Where two datasets meet</h2>
+        <p class="qSectionLead">Here the price data meets something from outside it — a metro map, a skyline,
+          a census — to see what one can really tell you about the other. Where the surprises live.</p>
+      </div>
+      <div class="questionGrid">
+        <a class="questionCard" href="explorer.html?q=mrt">
+          <div class="qEmoji">🚇</div>
+          <h3>Does living near the MRT cost more?</h3>
+          <p>Click into a Taipei district and each home shows two things at once — colour for how close it
+            sits to the metro, size for what it costs. The nearest ones do sell for more per ping;
+            <em>how much is really the metro</em> is the fun part.</p>
+          <div class="qGo">See for yourself →</div>
+        </a>
 
-      <a class="questionCard" href="explorer.html?q=towers">
-        <div class="qEmoji">🏙️</div>
-        <h3>Taller tower, pricier city?</h3>
-        <p>Every region's tallest building, drawn to scale on the map — then held up against its
-          prices to see whether a big skyline really means a big price tag.</p>
-        <div class="qGo">Measure up →</div>
-      </a>
+        <a class="questionCard" href="explorer.html?q=towers">
+          <div class="qEmoji">🏙️</div>
+          <h3>Taller tower, pricier city?</h3>
+          <p>Every region's tallest building, drawn to scale on the map — then held up against its
+            prices to see whether a big skyline really means a big price tag.</p>
+          <div class="qGo">Measure up →</div>
+        </a>
 
-      <a class="questionCard" href="explorer.html?q=immigration">
-        <div class="qEmoji">🌏</div>
-        <h3>Does immigration move prices?</h3>
-        <p>The map coloured by where the immigrants are — then flipped to where the money is. They
-          nearly match, which is exactly the trap. Here's why it's a mirage.</p>
-        <div class="qGo">See the twist →</div>
-      </a>
+        <a class="questionCard" href="explorer.html?q=immigration">
+          <div class="qEmoji">🌏</div>
+          <h3>Does immigration move prices?</h3>
+          <p>The map coloured by where the immigrants are — then flipped to where the money is. They
+            nearly match, which is exactly the trap. Here's why it's a mirage.</p>
+          <div class="qGo">See the twist →</div>
+        </a>
+      </div>
+    </section>
 
-      <a class="questionCard" href="predictor.html">
-        <div class="qEmoji">🔮</div>
-        <h3>What's a specific place worth?</h3>
-        <p>Describe a home — where it is, how big, how old — and get a ballpark price that's honest
-          about how sure it actually is.</p>
-        <div class="qGo">Get an estimate →</div>
-      </a>
-    </div>
+    <section class="qSection">
+      <div class="qSectionHead">
+        <h2 class="qSectionTitle">Have a play</h2>
+        <p class="qSectionLead">Less a question, more a toy — hand it the details of a home and watch the model
+          have a go at pricing it.</p>
+      </div>
+      <div class="questionGrid">
+        <a class="questionCard" href="predictor.html">
+          <div class="qEmoji">🔮</div>
+          <h3>What's a specific place worth?</h3>
+          <p>Describe a home — where it is, how big, how old — and get a ballpark price that's honest
+            about how sure it actually is.</p>
+          <div class="qGo">Get an estimate →</div>
+        </a>
+      </div>
+    </section>
 
     <p class="landingFoot">
       Every number here is a real, reported home sale — straight from Taiwan's public property

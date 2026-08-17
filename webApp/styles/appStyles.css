@@ -404,7 +404,16 @@ body.landingBody {
 .landingHero p { font-size: 17.5px; color: #675f52; margin: 0 auto; max-width: 560px; line-height: 1.55; }
 .landingHero p .wink { font-style: italic; color: #857a67; }
 
-.questionGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 26px; }
+/* Questions are grouped into sections by what they draw on: the registry alone, the registry
+   crossed with an outside dataset, and the interactive tool. Each section carries a short lead. */
+.qSection { margin-top: 44px; }
+.qSection:first-of-type { margin-top: 26px; }
+.qSectionHead { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; max-width: 780px; }
+.qSectionTitle { font-size: 21px; font-weight: 730; color: var(--ink); margin: 0; letter-spacing: -.3px; }
+.qSectionLead { flex-basis: 100%; font-size: 14.5px; color: #6d6558; line-height: 1.5; margin: 6px 0 0; }
+
+.questionGrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); margin-top: 18px; }
+.qSection .questionGrid { margin-top: 16px; }
 
 /* "Start here" chip on the first question card. */
 .questionCard .qTag {
@@ -602,4 +611,6 @@ body.landingBody {
   #map { height: 56vh; }
   .findingBar { padding: 8px 12px; }
   .questionGrid { gap: 14px; }
+  .qSection { margin-top: 30px; }
+  .qSectionTitle { font-size: 18.5px; }
 }
