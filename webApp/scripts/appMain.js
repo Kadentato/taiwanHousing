@@ -69,6 +69,33 @@ const TOWERS = {
 };
 const TOWERS_MAX = 508;   // Taipei 101 — the icon-size reference
 
+// Freely-licensed photos (Wikimedia Commons) for the towers that have one, shown in a click popup.
+// Only the well-known buildings are covered; the rest fall back to the icon + a "no photo yet" note.
+// Each carries its credit + licence so the attribution can travel with the image, as CC requires.
+const TOWER_PHOTOS = {
+  a: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Taipei_Taiwan_Taipei-101-Tower-01.jpg/960px-Taipei_Taiwan_Taipei-101-Tower-01.jpg",
+       by: "CEphoto, Uwe Aranas", lic: "CC BY-SA 3.0",
+       page: "https://commons.wikimedia.org/wiki/File:Taipei_Taiwan_Taipei-101-Tower-01.jpg" },
+  b: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Taichung_Commercial_Bank_Headquarters_20220826.jpg/960px-Taichung_Commercial_Bank_Headquarters_20220826.jpg",
+       by: "陳宸87", lic: "CC BY-SA 4.0",
+       page: "https://commons.wikimedia.org/wiki/File:Taichung_Commercial_Bank_Headquarters_20220826.jpg" },
+  c: { img: "https://upload.wikimedia.org/wikipedia/commons/6/6d/%E5%9F%BA%E9%9A%86%E9%BA%97%E6%A6%AE%E7%9A%87%E5%86%A0%E5%A4%A7%E6%A8%93.jpg",
+       by: "Qhlsohandsome", lic: "CC BY-SA 4.0",
+       page: "https://commons.wikimedia.org/wiki/File:%E5%9F%BA%E9%9A%86%E9%BA%97%E6%A6%AE%E7%9A%87%E5%86%A0%E5%A4%A7%E6%A8%93.jpg" },
+  d: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Shangri-La%27s_Far_Eastern_Plaza_Hotel_Tainan_20090906.jpg/960px-Shangri-La%27s_Far_Eastern_Plaza_Hotel_Tainan_20090906.jpg",
+       by: "WEINIE", lic: "CC BY-SA 3.0",
+       page: "https://commons.wikimedia.org/wiki/File:Shangri-La%27s_Far_Eastern_Plaza_Hotel_Tainan_20090906.jpg" },
+  e: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Kaohsiung_Taiwan_Kaohsiung-85-Building-01.jpg/960px-Kaohsiung_Taiwan_Kaohsiung-85-Building-01.jpg",
+       by: "CEphoto, Uwe Aranas", lic: "CC BY-SA 3.0",
+       page: "https://commons.wikimedia.org/wiki/File:Kaohsiung_Taiwan_Kaohsiung-85-Building-01.jpg" },
+  f: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/%E6%9D%BF%E6%A9%8B_%E9%81%A0%E7%99%BE%E4%BA%8C%E6%9C%9F%E8%BE%A6%E5%85%AC%E5%A4%A7%E6%A8%93_Banqiao_FarEastern_Headquarter_Building%2C_New_Taipei_-_panoramio.jpg/960px-%E6%9D%BF%E6%A9%8B_%E9%81%A0%E7%99%BE%E4%BA%8C%E6%9C%9F%E8%BE%A6%E5%85%AC%E5%A4%A7%E6%A8%93_Banqiao_FarEastern_Headquarter_Building%2C_New_Taipei_-_panoramio.jpg",
+       by: "Foxy Who", lic: "CC BY-SA 3.0",
+       page: "https://commons.wikimedia.org/wiki/File:%E6%9D%BF%E6%A9%8B_%E9%81%A0%E7%99%BE%E4%BA%8C%E6%9C%9F%E8%BE%A6%E5%85%AC%E5%A4%A7%E6%A8%93_Banqiao_FarEastern_Headquarter_Building,_New_Taipei_-_panoramio.jpg" },
+  m: { img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/%E4%B8%AD%E5%8F%B0%E7%A6%AA%E5%AF%BA_Chung_Tai_Chan_Monastery_-_panoramio.jpg/960px-%E4%B8%AD%E5%8F%B0%E7%A6%AA%E5%AF%BA_Chung_Tai_Chan_Monastery_-_panoramio.jpg",
+       by: "lienyuan lee", lic: "CC BY 3.0",
+       page: "https://commons.wikimedia.org/wiki/File:%E4%B8%AD%E5%8F%B0%E7%A6%AA%E5%AF%BA_Chung_Tai_Chan_Monastery_-_panoramio.jpg" },
+};
+
 // Foreign-resident share per city/county — "does immigration move prices?". rate = foreign
 // residents (ARC holders, ~May 2025, NIA via zh.Wikipedia) ÷ registered population (June 2026).
 // About three-quarters of these are migrant workers, so it's really labour migration. Keyed by cityCode.
@@ -1181,16 +1208,35 @@ function towerIcon(metres) {
     + `</svg>`;
   return L.divIcon({ className: "towerIcon", html: svg, iconSize: [w, h], iconAnchor: [w / 2, h] });
 }
+// The click popup: the building's photo (Wikimedia) when we have one, otherwise a graceful
+// "no photo yet" placeholder, plus the name, city and height — and the required image credit.
+function towerPopupHtml(code, cityEn, t) {
+  const p = TOWER_PHOTOS[code];
+  const media = p
+    ? `<img class="towerPhoto" src="${p.img}" alt="${t.en}, ${cityEn}" loading="lazy" referrerpolicy="no-referrer"
+         onerror="this.parentNode.classList.add('noPhoto');this.remove();" />
+       <a class="towerCredit" href="${p.page}" target="_blank" rel="noopener">Photo: ${p.by} · ${p.lic} · Wikimedia</a>`
+    : `<div class="towerNoPhoto">🏙️<span>No free photo yet</span></div>`;
+  return `<div class="towerPop${p ? "" : " noPhoto"}">
+      <div class="towerPhotoWrap">${media}</div>
+      <div class="towerPopBody">
+        <b>${t.en}</b>
+        <span class="towerMeta">${cityEn} · <b>${t.m} m</b> tall</span>
+      </div>
+    </div>`;
+}
 function buildTowerLayer() {
   if (!map.getPane("towers")) { map.createPane("towers"); map.getPane("towers").style.zIndex = 640; }
   const markers = [];
   for (const f of store.geom.city.values()) {
-    const t = TOWERS[f.properties.cityCode];
+    const code = f.properties.cityCode, t = TOWERS[code];
     if (!t) continue;
     const mk = L.marker(cityCentroid(f), { pane: "towers", icon: towerIcon(t.m), keyboard: false,
       riseOnHover: true, zIndexOffset: Math.round((TOWERS_MAX - t.m) * 10) });   // shorter towers on top so none hide behind Taipei's
-    mk.bindTooltip(`${f.properties.cityEn} — ${t.en} · ${t.m} m`,
-      { direction: "top", className: "mapLabel", offset: [0, -6] });
+    const tip = `${f.properties.cityEn} — ${t.en} · ${t.m} m${TOWER_PHOTOS[code] ? " 📷" : ""}`;
+    mk.bindTooltip(tip, { direction: "top", className: "mapLabel", offset: [0, -6] });
+    mk.bindPopup(towerPopupHtml(code, f.properties.cityEn, t),
+      { className: "towerPopup", maxWidth: 260, minWidth: 210, offset: [0, -4] });
     markers.push(mk);
   }
   return L.layerGroup(markers);
@@ -1639,7 +1685,7 @@ const QUESTION_PRESETS = {
               read: {
                 guide: `<h2>Reading the skyline map</h2>
                 <p>Does a city's tallest tower tell you anything about what its homes cost? Every city and county carries one skyscraper icon, drawn to scale — the taller its tallest building, the bigger the icon — sitting on top of the usual <b>price-per-ping</b> colour.</p>
-                <p class="lookFor"><b>What to watch:</b> look for the big icons parked on the darkest cities — that pairing is the whole question. The mismatches are just as telling.</p>
+                <p class="lookFor"><b>What to watch:</b> look for the big icons parked on the darkest cities — that pairing is the whole question. The mismatches are just as telling. <em>Click any tower</em> to see the building itself.</p>
                 <ul>
                   <li>Icon size is the <em>architectural height</em> of each region's tallest habitable building — Taipei 101 at 508 m towers over the lot; chimneys and power-plant stacks are deliberately left out so it reads as a building.</li>
                   <li>The colour underneath is the same median price per ping as the other maps, so a tall icon on a pale city (or a stubby one on a dark one) is a place that breaks the pattern.</li>

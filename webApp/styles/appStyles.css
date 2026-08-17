@@ -521,6 +521,29 @@ body.landingBody {
           drop-shadow(0 -.7px 0 #fff) drop-shadow(0 1.5px 1.5px rgba(15, 23, 42, .35));
 }
 
+/* Click popup for a tower: the building's photo (or a fallback) over its name, city and height. */
+.towerPopup .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+.towerPopup .leaflet-popup-content { margin: 0; width: auto !important; }
+.towerPop { width: 240px; }
+.towerPhotoWrap { position: relative; background: var(--chip); }
+.towerPhoto { display: block; width: 100%; height: 150px; object-fit: cover; }
+.towerCredit {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  font-size: 10px; line-height: 1.3; color: #fff; text-decoration: none;
+  padding: 8px 9px 5px; background: linear-gradient(to top, rgba(0, 0, 0, .62), rgba(0, 0, 0, 0));
+}
+.towerCredit:hover { text-decoration: underline; }
+.towerNoPhoto {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  height: 96px; font-size: 30px; color: var(--muted);
+}
+.towerNoPhoto span { font-size: 11.5px; font-weight: 500; }
+.towerPop.noPhoto .towerPhotoWrap { border-bottom: 1px solid var(--edge); }
+.towerPopBody { padding: 11px 13px 12px; }
+.towerPopBody b { display: block; font-size: 14.5px; color: var(--ink); line-height: 1.25; }
+.towerMeta { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.towerMeta b { display: inline; font-size: inherit; color: var(--ink); }
+
 /* "Does immigration move prices?" — two small Taiwan maps side by side (count | price) so you compare
    without flipping, plus a callout that names the mismatches. */
 .immView { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 12px 18px 14px; gap: 10px; background: var(--paper); overflow: auto; }
