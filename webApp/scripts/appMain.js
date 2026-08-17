@@ -34,8 +34,9 @@ const state = {
   colorMode: "metric",  // "metric" | "lisa"
   showMrt: false,       // Taipei MRT overlay (only offered when scoped to Taipei / New Taipei)
   showTowers: false,    // "do taller cities cost more?" — skyscraper icons over the city choropleth
-  showImmigration: false, // "does immigration move prices?" — a scatter (count vs price) with a per-capita toggle
-  immMode: "immigrants",  // immigration map layer: "immigrants" (foreign-resident count) vs "price" — flip to compare
+  showImmigration: false, // "does immigration move prices?" — immigrant maps vs the price map
+  immMode: "side",        // immigration view: "side" (two-row small multiples) vs "swap" (one big map you flip)
+  immLayer: "count",      // swap-mode layer on show: "count" | "share" | "price"
   question: null,       // active landing-page question (e.g. "mrt"), drives preset behaviour
 };
 
@@ -1287,34 +1288,56 @@ function buildImmMapPaths() {
   return { feats, paths, W, H };
 }
 
+// Three shadings of the same island: raw immigrant headcount, immigrants per 100 residents, and home price.
+// Count matches price (both track city size); per-person breaks the match — which is the whole lesson.
+const IMM_LAYERS = {
+  count: { val: (f) => IMMIGRATION[f.properties.cityCode].foreign },
+  share: { val: (f) => { const im = IMMIGRATION[f.properties.cityCode]; return im.pop ? (im.foreign / im.pop) * 100 : null; } },
+  price: { val: (f) => (f.properties.saleMedUnitPrice == null ? null : f.properties.saleMedUnitPrice * M2_PER_PING) },
+};
+// Copy for the swap view: the toggle label's title + a one-line read of what that layer shows.
+const IMM_SWAP_CAPTION = {
+  count: "Foreign residents by headcount. Dark in the big cities — the same places homes cost the most, which is the trap.",
+  share: "Foreign residents per 100 people. Now the factory and science-park counties run dark — and it stops matching the price map.",
+  price: "Median home price per ping — the yardstick. Flip back to the immigrant layers and see which one lines up with this.",
+};
 function renderImmMaps() {
   const { feats, paths, W, H } = buildImmMapPaths();
-  // Three shadings of the same island: raw immigrant headcount, immigrants per 100 residents, and home price.
-  // Count matches price (both track city size); per-person breaks the match — which is the whole lesson.
-  const countVal = (f) => IMMIGRATION[f.properties.cityCode].foreign;
-  const shareVal = (f) => {
-    const im = IMMIGRATION[f.properties.cityCode];
-    return im.pop ? (im.foreign / im.pop) * 100 : null;
-  };
-  const priceVal = (f) => (f.properties.saleMedUnitPrice == null ? null : f.properties.saleMedUnitPrice * M2_PER_PING);
-  const countBins = quantileBins(feats.map(countVal));
-  const shareBins = quantileBins(feats.map(shareVal).filter((v) => v != null));
-  const priceBins = quantileBins(feats.map(priceVal).filter((v) => v != null));
-  const svg = (valFn, bins) => {
+  const bins = {};
+  for (const k in IMM_LAYERS) bins[k] = quantileBins(feats.map(IMM_LAYERS[k].val).filter((v) => v != null));
+  const svg = (layer) => {
     let s = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">`;
     for (const f of feats) {
-      const v = valFn(f), c = v == null ? NO_DATA : colorFor(v, bins);
+      const v = IMM_LAYERS[layer].val(f), c = v == null ? NO_DATA : colorFor(v, bins[layer]);
       s += `<path d="${paths[f.properties.cityCode]}" fill="${c}" stroke="#fff" stroke-width="0.7" stroke-linejoin="round"/>`;
     }
     return s + "</svg>";
   };
   const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-  const priceSvg = svg(priceVal, priceBins);
-  set("immMapCount", svg(countVal, countBins));
-  set("immMapShare", svg(shareVal, shareBins));
-  set("immMapPrice1", priceSvg);   // same price map repeated as the anchor in both rows
-  set("immMapPrice2", priceSvg);
+  const swap = state.immMode === "swap";
+  document.getElementById("immSide").hidden = swap;
+  document.getElementById("immSwap").hidden = !swap;
+
+  if (swap) {
+    document.querySelectorAll("#immLayerToggle button").forEach((b) =>
+      b.classList.toggle("active", b.dataset.layer === state.immLayer));
+    set("immSwapMap", svg(state.immLayer));
+    const cap = document.getElementById("immSwapCaption");
+    if (cap) cap.textContent = IMM_SWAP_CAPTION[state.immLayer] || "";
+  } else {
+    const priceSvg = svg("price");
+    set("immMapCount", svg("count"));
+    set("immMapShare", svg("share"));
+    set("immMapPrice1", priceSvg);   // same price map repeated as the anchor in both rows
+    set("immMapPrice2", priceSvg);
+  }
 }
+// Switch the immigration view mode / swap-map layer, then re-render in place.
+function setImmMode(mode) { state.immMode = mode;
+  document.querySelectorAll("#immModeToggle button").forEach((b) => b.classList.toggle("active", b.dataset.immmode === mode));
+  renderImmMaps();
+}
+function setImmLayer(layer) { state.immLayer = layer; renderImmMaps(); }
 
 // A pastel-pink 💡 button in the map's top-right corner. It opens the current question's
 // two-page popup (how to read it → what the data says), and only shows while a question is active.
@@ -1442,6 +1465,12 @@ function wireControls() {
   document.getElementById("viewToggle").onclick = (e) => {
     if (!e.target.dataset.view) return;
     setView(e.target.dataset.view);
+  };
+  document.getElementById("immModeToggle").onclick = (e) => {
+    if (e.target.dataset.immmode) setImmMode(e.target.dataset.immmode);
+  };
+  document.getElementById("immLayerToggle").onclick = (e) => {
+    if (e.target.dataset.layer) setImmLayer(e.target.dataset.layer);
   };
   document.getElementById("chartCollapse").onclick = (e) => {
     const panel = document.getElementById("chartPanel");

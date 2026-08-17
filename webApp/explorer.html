@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Taiwan Housing Explorer</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="styles/appStyles.css?v=38" />
+  <link rel="stylesheet" href="styles/appStyles.css?v=39" />
 </head>
 <body>
   <header class="appHeader">
@@ -78,58 +78,78 @@
       </div>
 
       <div id="immView" class="immView" hidden>
-        <div class="immHead">
-          <span class="immVerdict">Short answer: no — it just looks that way.</span>
-          <span class="immVerdictSub">Watch the price map on the right stay put while the immigrant map on the
-            left changes. By raw headcount it matches; per person, it falls apart.</span>
-        </div>
-
-        <div class="immRow">
-          <div class="immRowLabel">
-            <span class="immStep">1</span>
-            <div>
-              <b>By headcount — looks like a match</b>
-              <span>The most immigrants and the priciest homes light up the same big cities. That scores a
-                real-looking <b>r&nbsp;≈&nbsp;0.44</b>.</span>
-            </div>
+        <div class="immTopBar">
+          <div class="immHead">
+            <span class="immVerdict">Short answer: no — it just looks that way.</span>
+            <span class="immVerdictSub">By raw headcount the immigrant map matches the price map; count per
+              person and it falls apart.</span>
           </div>
-          <div class="immMaps">
-            <figure class="immMap">
-              <figcaption>Immigrants <span>total headcount</span></figcaption>
-              <div class="immMapSvg" id="immMapCount"></div>
-            </figure>
-            <figure class="immMap match">
-              <figcaption>Home prices <span>median NT$ / ping</span></figcaption>
-              <div class="immMapSvg" id="immMapPrice1"></div>
-            </figure>
+          <div class="segmented immModeToggle" id="immModeToggle">
+            <button data-immmode="side" class="active" type="button">Side by side</button>
+            <button data-immmode="swap" type="button">Swap</button>
           </div>
         </div>
 
-        <div class="immRow">
-          <div class="immRowLabel">
-            <span class="immStep">2</span>
-            <div>
-              <b>Per person — it vanishes</b>
-              <span>Count immigrants per 100 residents and the dark areas jump to factory counties, nothing like
-                the price map. The link drops to <b>≈&nbsp;0</b>.</span>
+        <!-- Side-by-side: both comparisons at once, the trap then the reveal. -->
+        <div class="immSide" id="immSide">
+          <div class="immRow">
+            <div class="immRowLabel">
+              <span class="immStep">1</span>
+              <div>
+                <b>By headcount — looks like a match</b>
+                <span>The most immigrants and the priciest homes light up the same big cities:
+                  <b>r&nbsp;≈&nbsp;0.44</b>.</span>
+              </div>
+            </div>
+            <div class="immMaps">
+              <figure class="immMap">
+                <figcaption>Immigrants <span>total headcount</span></figcaption>
+                <div class="immMapSvg" id="immMapCount"></div>
+              </figure>
+              <figure class="immMap match">
+                <figcaption>Home prices <span>median NT$ / ping</span></figcaption>
+                <div class="immMapSvg" id="immMapPrice1"></div>
+              </figure>
             </div>
           </div>
-          <div class="immMaps">
-            <figure class="immMap">
-              <figcaption>Immigrants <span>per 100 residents</span></figcaption>
-              <div class="immMapSvg" id="immMapShare"></div>
-            </figure>
-            <figure class="immMap match">
-              <figcaption>Home prices <span>median NT$ / ping</span></figcaption>
-              <div class="immMapSvg" id="immMapPrice2"></div>
-            </figure>
+
+          <div class="immRow">
+            <div class="immRowLabel">
+              <span class="immStep">2</span>
+              <div>
+                <b>Per person — it vanishes</b>
+                <span>Per 100 residents, the dark areas jump to factory counties, nothing like the price map:
+                  <b>≈&nbsp;0</b>.</span>
+              </div>
+            </div>
+            <div class="immMaps">
+              <figure class="immMap">
+                <figcaption>Immigrants <span>per 100 residents</span></figcaption>
+                <div class="immMapSvg" id="immMapShare"></div>
+              </figure>
+              <figure class="immMap match">
+                <figcaption>Home prices <span>median NT$ / ping</span></figcaption>
+                <div class="immMapSvg" id="immMapPrice2"></div>
+              </figure>
+            </div>
           </div>
+        </div>
+
+        <!-- Swap: one big map, flip what it shows and watch the pattern make or break. -->
+        <div class="immSwap" id="immSwap" hidden>
+          <div class="segmented immLayerToggle" id="immLayerToggle">
+            <button data-layer="count" class="active" type="button">Immigrants — total</button>
+            <button data-layer="share" type="button">Immigrants — per person</button>
+            <button data-layer="price" type="button">Home prices</button>
+          </div>
+          <div class="immSwapMap" id="immSwapMap"></div>
+          <p class="immSwapCaption" id="immSwapCaption"></p>
         </div>
 
         <div class="immCallout good" id="immCallout">
           <span class="immTag">The catch</span> The priciest market, <b>Taipei</b>, is only middling for
-          immigrants; the most-immigrant county, <b>Taoyuan</b>, is only mid-priced. What the top two maps really
-          share is <b>city size</b> — big cities have more of everyone — not immigration lifting prices.
+          immigrants; the most-immigrant county, <b>Taoyuan</b>, is only mid-priced. What the headcount and price
+          maps really share is <b>city size</b> — big cities have more of everyone — not immigration lifting prices.
         </div>
       </div>
 
@@ -179,6 +199,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="scripts/appMain.js?v=76"></script>
+  <script src="scripts/appMain.js?v=77"></script>
 </body>
 </html>
