@@ -97,17 +97,20 @@ const TOWER_PHOTOS = {
        page: "https://commons.wikimedia.org/wiki/File:%E4%B8%AD%E5%8F%B0%E7%A6%AA%E5%AF%BA_Chung_Tai_Chan_Monastery_-_panoramio.jpg" },
 };
 
-// Foreign-resident share per city/county — "does immigration move prices?". rate = foreign
-// residents (ARC holders, ~May 2025, NIA via zh.Wikipedia) ÷ registered population (June 2026).
+// Registered population per city/county (June 2026, Ministry of the Interior), keyed by cityCode.
+// One source of truth, reused by the immigration question and the market-activity turnover figures.
+const CITY_POP = {
+  a: 2425964, b: 2867468, c: 358574,  d: 1848108, e: 2709973, f: 4038031, g: 448513,
+  h: 2356618, i: 261497,  j: 598260,  k: 529791,  m: 467082,  n: 1203726, o: 455755,
+  p: 647648,  q: 470404,  t: 779096,  u: 311290,  v: 207858,  w: 137716,  x: 106550,
+};
+// Foreign-resident count per city/county — "does immigration move prices?". Foreign residents
+// (ARC holders, ~May 2025, NIA via zh.Wikipedia); the per-person share is this ÷ CITY_POP.
 // About three-quarters of these are migrant workers, so it's really labour migration. Keyed by cityCode.
 const IMMIGRATION = {
-  a: { foreign: 83744,  pop: 2425964 }, b: { foreign: 128626, pop: 2867468 }, c: { foreign: 8455,  pop: 358574 },
-  d: { foreign: 77529,  pop: 1848108 }, e: { foreign: 96413,  pop: 2709973 }, f: { foreign: 137683, pop: 4038031 },
-  g: { foreign: 15443,  pop: 448513 },  h: { foreign: 162144, pop: 2356618 }, i: { foreign: 4966,  pop: 261497 },
-  j: { foreign: 47714,  pop: 598260 },  k: { foreign: 29215,  pop: 529791 },  m: { foreign: 16779, pop: 467082 },
-  n: { foreign: 64832,  pop: 1203726 }, o: { foreign: 23175,  pop: 455755 },  p: { foreign: 27167, pop: 647648 },
-  q: { foreign: 19896,  pop: 470404 },  t: { foreign: 21361,  pop: 779096 },  u: { foreign: 8380,  pop: 311290 },
-  v: { foreign: 3493,   pop: 207858 },  w: { foreign: 1500,   pop: 137716 },  x: { foreign: 2901,  pop: 106550 },
+  a: 83744,  b: 128626, c: 8455,  d: 77529,  e: 96413,  f: 137683, g: 15443,
+  h: 162144, i: 4966,   j: 47714, k: 29215,  m: 16779,  n: 64832,  o: 23175,
+  p: 27167,  q: 19896,  t: 21361, u: 8380,   v: 3493,   w: 1500,   x: 2901,
 };
 const PAGE_SIZE = 50;
 const TAIWAN_BOUNDS = L.latLngBounds([21.5, 118.0], [25.6, 122.3]);
@@ -940,8 +943,15 @@ function renderStats() {
   const feat = state.scopeCity ? store.geom.city.get(state.scopeCity) : null;
   let html = row("Area", scopeLabel()) + row("Deal type", state.type);
   if (feat) {
-    html += row("Sales", aggCount(feat).toLocaleString(), "How many sales this figure is based on")
-      + row("Typical price / ping", fmt(aggMetric(feat, "unit"), METRIC.unit), "The median — half of sales cost more, half cost less")
+    const code = feat.properties.cityCode, pop = CITY_POP[code];
+    html += row("Sales", aggCount(feat).toLocaleString(), "How many sales this figure is based on");
+    if (pop) {
+      html += row("Population", pop.toLocaleString(), "Registered residents (Ministry of the Interior, June 2026)");
+      const salesN = feat.properties.saleCount;
+      if (salesN) html += row("Sales per 1,000 residents", Math.round(salesN / pop * 1000).toLocaleString(),
+        "Completed sales 2012–2024 per 1,000 residents — a rough turnover rate. A low figure can mean a built-out, pricey, buy-and-hold market.");
+    }
+    html += row("Typical price / ping", fmt(aggMetric(feat, "unit"), METRIC.unit), "The median — half of sales cost more, half cost less")
       + row("Typical total price", fmt(aggMetric(feat, "total"), METRIC.total), "The median full sale price")
       + row("Typical home size", fmt(aggMetric(feat, "ping"), METRIC.ping), "The median living size, in ping");
   } else {
@@ -1291,8 +1301,8 @@ function buildImmMapPaths() {
 // Three shadings of the same island: raw immigrant headcount, immigrants per 100 residents, and home price.
 // Count matches price (both track city size); per-person breaks the match — which is the whole lesson.
 const IMM_LAYERS = {
-  count: { val: (f) => IMMIGRATION[f.properties.cityCode].foreign },
-  share: { val: (f) => { const im = IMMIGRATION[f.properties.cityCode]; return im.pop ? (im.foreign / im.pop) * 100 : null; } },
+  count: { val: (f) => IMMIGRATION[f.properties.cityCode] },
+  share: { val: (f) => { const c = f.properties.cityCode, pop = CITY_POP[c]; return pop ? (IMMIGRATION[c] / pop) * 100 : null; } },
   price: { val: (f) => (f.properties.saleMedUnitPrice == null ? null : f.properties.saleMedUnitPrice * M2_PER_PING) },
 };
 // Copy for the swap view: the toggle label's title + a one-line read of what that layer shows.
@@ -1633,23 +1643,23 @@ const QUESTION_PRESETS = {
                 <p>Which is the honest, slightly boring answer to "where's the pricey stuff" — the capital, again. The part worth wandering is not <em>whether</em> Taipei is dear, but <em>where inside it</em> the money pools, and that is a map you have to walk yourself.</p>` } },
   activity: { metric: "count", title: "Where's the market buzzing?",
               hint: "Coloured by how many homes actually sell in each area — the busy markets versus the quiet ones.",
-              finding: `<b>New Taipei City</b> alone is nearly <b>one in five</b> of every home sold in the country — volume follows people, not prices.`,
+              finding: `Raw sales roughly track <b>population</b> — <b>New Taipei</b> is biggest and sells most. But per resident, the priciest city, <b>Taipei</b>, trades the <b>fewest</b> of the big six.`,
               read: {
                 guide: `<h2>Reading the activity map</h2>
                 <p>Some neighbourhoods trade homes like a busy market stall; others sit still for months at a time. This map asks only one thing — <b>how many homes actually sold</b> in each place — and lets colour and bubble size climb together, so the busy corners are impossible to miss.</p>
                 <p class="lookFor"><b>What to watch:</b> the biggest, darkest bubbles are the high-volume markets — then flip <b>Colour by</b> to price and see whether busy also means dear (it often does not).</p>
                 <ul>
+                  <li>Raw counts favour big cities, so keep population in mind — pick a city and the panel shows its population and its <b>sales per 1,000 residents</b>, which is the fairer comparison.</li>
                   <li>Click into a city to find which of its districts do the real trading.</li>
                   <li>Pop the chart at the bottom to watch it move month by month — the booms, the lulls, the slow seasons in between.</li>
-                  <li>Busy and rich are two different questions, and this map only answers the first.</li>
                 </ul>`,
                 findings: `<h2>What the numbers turned out to be</h2>
-                <p>Where do homes change hands the most? Not quite where you might guess.</p>
+                <p>Where do homes change hands the most? First glance and second glance give different answers.</p>
                 <ul>
-                  <li>Of the <b>3.42 million</b> sales, <b>New Taipei City</b> alone accounts for about <b>646,000</b> — very nearly one in five homes sold in the whole country — with <b>Taichung</b> (~526,000) and <b>Taoyuan</b> (~478,000) close behind. Together, almost <b>half</b> of everything.</li>
-                  <li>Notice the name that is missing: Taipei City, the priciest market of all, never enters the top three.</li>
+                  <li><b>By raw count</b>, <b>New Taipei City</b> leads with about <b>646,000</b> of the 3.4M sales — nearly one in five — then <b>Taichung</b> (~526,000) and <b>Taoyuan</b> (~478,000). But New Taipei is also the biggest city (about <b>4.0 million</b> people), so most of that lead is simply <b>more people</b> — the same city-size trap as the immigration map.</li>
+                  <li><b>Per 1,000 residents</b> (2012–2024) the order reshuffles: <b>Taoyuan ≈ 203</b>, <b>Taichung ≈ 184</b>, New Taipei and Kaohsiung ≈ 160, Tainan ≈ 142 — and <b>Taipei City last of the six at ≈ 114</b>, despite being the priciest market. Divide out population and the busiest place is a growth city, not the capital.</li>
                 </ul>
-                <p>So volume turns out to be a story about supply, not price — the busiest places are the big suburban cities, the ones with the most people and the most cranes in the air. A market can be frantic and cheap at once, and this map keeps quietly reminding you of it.</p>` } },
+                <p>So why does Taipei trade so little per head? Plausibly its <b>prices</b> — dear markets are harder to move in and out of, exactly what you'd expect if cost deters transactions. But it needn't be only that: Taipei is also <b>built out</b>, with little new construction and an older, hold-and-keep housing stock, while Taoyuan and Taichung are still throwing up towers. The honest read is that low turnover is <em>consistent with</em> high prices biting — not proof of it. Busy and cheap can co-exist; so can dear and still.</p>` } },
   size:     { metric: "ping",  title: "Where do you get room to breathe?",
               hint: "Coloured by the median living size in each area, measured in ping.",
               finding: `The typical home swings from about <b>9 ping</b> in dense city cores to nearly <b>60</b> in the roomiest districts — and roomier usually means cheaper per ping.`,
