@@ -1721,7 +1721,7 @@ const QUESTION_PRESETS = {
   towers:   { metric: "unit", towers: true,
               title: "Taller tower, pricier city?",
               hint: "Each region's tallest building drawn to scale as a skyscraper, sitting over the price-per-ping colour.",
-              finding: `Taller-tower cities really do trend pricier (<b>r ≈ 0.84</b>) — but Taipei carries most of it; the steadier read is <b>ρ ≈ 0.67</b>.`,
+              finding: `Taller-tower cities do trend pricier (<b>r ≈ 0.84</b>, a steadier <b>ρ ≈ 0.67</b>) — but tall towers and high prices are both symptoms of a big, moneyed city, not one causing the other.`,
               read: {
                 guide: `<h2>Reading the skyline map</h2>
                 <p>Does a city's tallest tower tell you anything about what its homes cost? Every city and county carries one skyscraper icon, drawn to scale — the taller its tallest building, the bigger the icon — sitting on top of the usual <b>price-per-ping</b> colour.</p>
